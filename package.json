@@ -1,0 +1,18 @@
+{
+  "name": "kaiboard-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KaiBoard Model Context Protocol server workspace (local-dev only; publish/push happens at release). Contains @kaiboard/core (storage-agnostic Agent co-drawing command core) and, in M1-3, the MCP server.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p packages/core/tsconfig.json",
+    "typecheck:core": "tsc -p packages/core/tsconfig.json"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^7.0.2"
+  }
+}

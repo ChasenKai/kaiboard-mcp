@@ -1,0 +1,104 @@
+// @kaiboard/core —— 存储无关的 Agent 指令核心类型。
+// 不依赖 window / DOM / postMessage；所有存储与渲染都经 StorageAdapter 注入。
+//
+// BoardData / FileNode 在包内自包含定义（与 app 仓 src/db.ts 的数据形状保持一致），
+// 使本包完全存储无关、零外部类型依赖。App 的 db.ts 与 MCP 的 fsStore 都须产出兼容形状。
+
+export interface FileNode {
+  id: string;
+  type: "folder" | "board";
+  name: string;
+  parentId: string | null;
+  createdAt: number;
+  updatedAt: number;
+  /** 同层排序权重，越小越靠前；拖拽/移动时更新 */
+  order?: number;
+  /** 软删除时间戳；空 = 未删除（在回收站中可还原） */
+  deletedAt?: number | null;
+}
+
+export interface BoardData {
+  id: string;
+  elements: any[];
+  appState: any;
+  files: any;
+}
+
+export type AgentCmd =
+  | "getBoard"
+  | "addElement"
+  | "replaceBoard"
+  | "getScreenshot"
+  | "patchElement"
+  | "deleteElement"
+  | "listBoards"
+  | "createBoard"
+  | "fromMermaid";
+
+/** C4 源随图走：随图携带的「生成来源」。 */
+export interface KbSource {
+  kind?: string;
+  text?: string;
+  [k: string]: any;
+}
+
+/** Core 指令体（传输层负责校验 type/token 后传入）。 */
+export interface AgentCommand {
+  cmd: AgentCmd;
+  /** N3 寻址：目标画板 id；缺省 = 当前打开画板 */
+  boardId?: string;
+  /** addElement / replaceBoard：元素（数组或单个） */
+  elements?: any[] | any;
+  /** patchElement：[{ id, ...要合并的属性 }] */
+  patches?: any[] | any;
+  /** deleteElement：要删除的元素 id（数组或单个） */
+  ids?: string[] | string;
+  /** createBoard：新画板名 / 目标父文件夹 */
+  name?: string;
+  parentId?: string | null;
+  /** fromMermaid：mermaid 源码 */
+  mermaid?: string;
+  /** C4 源随图走 */
+  source?: KbSource | string;
+  /** getScreenshot / fromMermaid 选项 */
+  opts?: {
+    maxWidthOrHeight?: number;
+    background?: boolean;
+    darkMode?: boolean;
+    /** fromMermaid：整板替换而非追加 */
+    replace?: boolean;
+    fontSize?: number;
+  };
+}
+
+export interface Snapshot {
+  boardId: string;
+  ts: number;
+  elements: any[];
+}
+
+/**
+ * 存储适配器：把「实时画布 + idb/fs/dir 存储 + 设置 + 截图渲染」统一抽象。
+ * 应用桥（agentBridge）与 MCP 服务端各自实现本接口，Core 逻辑完全复用。
+ */
+export interface StorageAdapter {
+  /** 当前打开画板 id（live 模式）；无则为 undefined */
+  currentBoardId: string | undefined;
+  /** 读取目标画板元素（target 缺省 = 当前） */
+  readElements(target?: string): Promise<any[]>;
+  /** 读取目标画板完整元数据（截图用：元素 + 文件 + 状态） */
+  readMeta(target?: string): Promise<{ elements: any[]; files: any; appState: any }>;
+  /** 写回目标画板元素 */
+  writeElements(target: string | undefined, elements: any[]): Promise<void>;
+  /** 文件树（文件夹 + 画板） */
+  listBoards(): Promise<FileNode[]>;
+  getNode(id: string): Promise<FileNode | undefined>;
+  putNode(node: FileNode): Promise<void>;
+  /** createBoard：写入画板初始数据 */
+  putBoardData(id: string, data: BoardData): Promise<void>;
+  getMaxOrder(parentId: string | null): Promise<number>;
+  getSetting<T>(key: string, fallback: T): Promise<T>;
+  setSetting(key: string, value: any): Promise<void>;
+  /** 截图渲染（可选）：app 注入 exportToBlob+FileReader；MCP --dir 不注入 → 标记不支持 */
+  renderPng?(elements: any[], files: any, appState: any, opts: any): Promise<{ dataUrl: string; bytes: number }>;
+}
