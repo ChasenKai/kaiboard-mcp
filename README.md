@@ -50,11 +50,48 @@ node packages/server/dist/cli.js --dir <本地文件夹>
 # 或构建后：kaiboard-mcp --dir <本地文件夹>
 ```
 
-- 服务端以 **stdio JSON-RPC 2.0** 暴露 10 个 tool：`kaiboard_<cmd>`（9 命令，snake_case）
-  + `kaiboard_list_capabilities`（一等命令，能力声明）。
+- 服务端以 **stdio JSON-RPC 2.0** 暴露 10 个 tool：`kbfs_<cmd>`（9 命令，snake_case）
+  + `kbfs_list_capabilities`（一等命令，能力声明）。
 - 任意标准 MCP 客户端（WorkBuddy / Cherry Studio / Claude Desktop 等）用 `command` 指向上述
   命令、`args: ["--dir", "<文件夹>"]` 即可连接；画板数据落 `<文件夹>/kaiboard-data/`，
   **永不离开本机**（F1=A 零云红线）。
+
+### 与现有 `kaiboard-bridge` 的关系（重要）
+
+WorkBuddy 里**已有一个** `kaiboard-bridge`（来自 `CKs_KaiBoardDraw_Local` skill）：它把工具命名为
+`kaiboard_*`，经 127.0.0.1:8787 中继到**运行中的 KaiBoard app**（截图 / 思维导图都可用，存用户 IndexedDB）。
+
+本服务端是**另一路**——`kbfs_*`（KaiBoard File-System 模式）：不依赖 app、不依赖中继，**零云**、自带
+`--dir` 文件夹（架构上的「双存储」第二路）。两路工具前缀刻意错开（`kaiboard_*` vs `kbfs_*`），
+**可同时启用、不会撞名**。
+
+| 维度 | `kaiboard-bridge` | `kbfs_*`（本服务端） |
+|------|-------------------|----------------------|
+| 后端 | 运行中的 KaiBoard app（IndexedDB） | 本地 `--dir` 文件夹（fs） |
+| 需要 app 开着？ | 是（且「Agent 共绘」开关 ON） | 否 |
+| getScreenshot | ✅ 真实 PNG | ❌ 降级 `ok:false`（无 canvas） |
+| fromMermaid | ✅ 原生图元 | ❌ 降级 `ok:false`（无 mermaid 依赖） |
+| 数据存储 | 用户 KaiBoard 库 | `<文件夹>/kaiboard-data/` |
+| 典型用途 | Agent 直接动用户的真实画板 | Agent 自有的、零云的独立工作区 |
+
+### 接进 WorkBuddy（mcp.json 片段）
+
+将下面这段加进 `~/.workbuddy/mcp.json` 的 `mcpServers`（与 `kaiboard-bridge` 并列，**不冲突**），
+然后在连接器管理页面对 `kaiboard-mcp` 点「信任」即可启用：
+
+```json
+"kaiboard-mcp": {
+  "command": "C:\\Users\\86158\\.workbuddy\\binaries\\node\\versions\\22.22.2\\node.exe",
+  "args": [
+    "E:/WorkBuddyData/PProjectManagement/KaiBoard-MCP/packages/server/dist/cli.js",
+    "--dir",
+    "E:/WorkBuddyData/PProjectManagement/kaiboard-agent-workspace"
+  ],
+  "disabled": false
+}
+```
+
+> `--dir` 指向的文件夹首次写入时自动创建（`kaiboard-data/` 子树），无需手动建。
 
 ## Headless 限制（--dir 模式）
 

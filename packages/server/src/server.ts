@@ -24,17 +24,18 @@ function camelToSnake(s: string): string {
   return s.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
 }
 
-// 工具名采用 MCP 惯用的 snake_case：kaiboard_<cmd 的 snake 形式>（与 kaiboard_list_capabilities 一致）。
-// 建立 工具名↔cmd 双向映射，dispatch 时直接用反向查表，避免字符串剥离的歧义。
+// 工具名采用 MCP 惯用的 snake_case：kbfs_<cmd 的 snake 形式>（kbfs = KaiBoard File-System 模式）。
+// 前缀刻意区别于现有 kaiboard-bridge（其工具名为 kaiboard_*，驱动运行中的 KaiBoard app 中继），
+// 避免同一 Agent 下两套 server 工具名撞车。建立 工具名↔cmd 双向映射，dispatch 时直接用反向查表。
 const TOOL_TO_CMD: Record<string, AgentCmd> = Object.fromEntries(
-  COMMANDS.map((cmd) => ["kaiboard_" + camelToSnake(cmd), cmd]),
+  COMMANDS.map((cmd) => ["kbfs_" + camelToSnake(cmd), cmd]),
 );
 const CMD_TO_TOOL: Record<string, string> = Object.fromEntries(
   Object.entries(TOOL_TO_CMD).map(([tool, cmd]) => [cmd, tool]),
 );
 
 function toolName(cmd: string): string {
-  return CMD_TO_TOOL[cmd] ?? "kaiboard_" + camelToSnake(cmd);
+  return CMD_TO_TOOL[cmd] ?? "kbfs_" + camelToSnake(cmd);
 }
 
 const TOOLS = [
@@ -61,7 +62,7 @@ const TOOLS = [
     },
   })),
   {
-    name: "kaiboard_list_capabilities",
+    name: "kbfs_list_capabilities",
     description: "KaiBoard 能力声明（一等命令）：可用命令白名单 / 存储模式 / 快照上限 / 服务端信息",
     inputSchema: {
       type: "object",
@@ -88,7 +89,7 @@ export function createServer(opts: { rootDir: string }) {
     const requestId = args.requestId || randomUUID();
     const kbProtocol = args.kbProtocol || KB_PROTOCOL;
 
-    if (name === "kaiboard_list_capabilities") {
+    if (name === "kbfs_list_capabilities") {
       return envelope(kbProtocol, requestId, listCapabilitiesResult());
     }
 

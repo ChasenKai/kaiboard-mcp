@@ -104,59 +104,59 @@ async function main() {
     const tl = await client.send("tools/list", {});
     const names = tl?.result?.tools?.map((t) => t.name) || [];
     check("tools/list=10（9命令+listCapabilities）", names.length === 10, JSON.stringify(names.length));
-    check("含 kaiboard_list_capabilities", names.includes("kaiboard_list_capabilities"));
-    check("含 kaiboard_create_board（snake_case）", names.includes("kaiboard_create_board"));
+    check("含 kbfs_list_capabilities", names.includes("kbfs_list_capabilities"));
+    check("含 kbfs_create_board（snake_case）", names.includes("kbfs_create_board"));
 
     // listCapabilities
-    const cap = await client.callTool("kaiboard_list_capabilities", { requestId: "cap" });
+    const cap = await client.callTool("kbfs_list_capabilities", { requestId: "cap" });
     check("listCapabilities: commands=9", cap.ok && cap.result.commands.length === 9, JSON.stringify(cap?.result?.commands));
     check("listCapabilities: storageModes 含 dir", cap.result.storageModes.includes("dir"));
 
     // createBoard
-    const c = await client.callTool("kaiboard_create_board", { requestId: "R1", name: "客户端画板" });
+    const c = await client.callTool("kbfs_create_board", { requestId: "R1", name: "客户端画板" });
     check("createBoard 返回 boardId", c.ok && !!c.result.boardId, JSON.stringify(c));
     const bid = c.result.boardId;
 
     // addElement（非空板，供 getScreenshot 验 R1）
-    const a = await client.callTool("kaiboard_add_element", { requestId: "R2", boardId: bid, elements: [RECT] });
+    const a = await client.callTool("kbfs_add_element", { requestId: "R2", boardId: bid, elements: [RECT] });
     check("addElement added=1", a.ok && a.result.added === 1, JSON.stringify(a));
 
     // getScreenshot —— --dir 无 canvas，非空板必须回 unsupported（R1）
-    const shot = await client.callTool("kaiboard_get_screenshot", { requestId: "R3", boardId: bid });
+    const shot = await client.callTool("kbfs_get_screenshot", { requestId: "R3", boardId: bid });
     check("getScreenshot(--dir 非空板)→ok:false unsupported", shot.ok === false, JSON.stringify(shot));
 
     // patchElement
-    const p = await client.callTool("kaiboard_patch_element", { requestId: "R4", boardId: bid, patches: [{ id: "rect-1", fill: "red" }] });
+    const p = await client.callTool("kbfs_patch_element", { requestId: "R4", boardId: bid, patches: [{ id: "rect-1", fill: "red" }] });
     check("patchElement patched=1", p.ok && p.result.patched === 1, JSON.stringify(p));
 
     // getBoard（验证 patch 生效）
-    const gb = await client.callTool("kaiboard_get_board", { requestId: "R5", boardId: bid });
+    const gb = await client.callTool("kbfs_get_board", { requestId: "R5", boardId: bid });
     check("getBoard 返回元素且 fill=red", gb.ok && gb.result.elements[0]?.fill === "red", JSON.stringify(gb?.result?.elements?.[0]));
 
     // replaceBoard
-    const r = await client.callTool("kaiboard_replace_board", { requestId: "R6", boardId: bid, elements: [ELL] });
+    const r = await client.callTool("kbfs_replace_board", { requestId: "R6", boardId: bid, elements: [ELL] });
     check("replaceBoard replaced=1", r.ok && r.result.replaced === 1, JSON.stringify(r));
-    const gb2 = await client.callTool("kaiboard_get_board", { requestId: "R7", boardId: bid });
+    const gb2 = await client.callTool("kbfs_get_board", { requestId: "R7", boardId: bid });
     check("replace 后元素为 ellipse", gb2.ok && gb2.result.elements[0]?.type === "ellipse", JSON.stringify(gb2?.result?.elements?.[0]));
 
     // deleteElement
-    const d = await client.callTool("kaiboard_delete_element", { requestId: "R8", boardId: bid, ids: ["ell-1"] });
+    const d = await client.callTool("kbfs_delete_element", { requestId: "R8", boardId: bid, ids: ["ell-1"] });
     check("deleteElement deleted=1", d.ok && d.result.deleted === 1, JSON.stringify(d));
 
     // fromMermaid —— headless 无 mermaid-to-excalidraw 依赖，应优雅回 ok:false（R1 同类限制，不崩）
-    const m = await client.callTool("kaiboard_from_mermaid", { requestId: "R9", boardId: bid, mermaid: "graph TD; A-->B" });
+    const m = await client.callTool("kbfs_from_mermaid", { requestId: "R9", boardId: bid, mermaid: "graph TD; A-->B" });
     check("fromMermaid(--dir 无 mermaid 依赖)→ok:false 优雅降级", m.ok === false && typeof m.error?.code === "string", JSON.stringify(m));
 
     // listBoards
-    const lb = await client.callTool("kaiboard_list_boards", { requestId: "R10" });
+    const lb = await client.callTool("kbfs_list_boards", { requestId: "R10" });
     check("listBoards 含该画板节点", lb.ok && lb.result.nodes.some((n) => n.id === bid), JSON.stringify(lb?.result?.nodes));
 
     // 未知命令 → UNKNOWN_CMD
-    const unk = await client.callTool("kaiboard_no_such_cmd", { requestId: "R11" });
+    const unk = await client.callTool("kbfs_no_such_cmd", { requestId: "R11" });
     check("未知命令→UNKNOWN_CMD", unk.ok === false && unk.error?.code === "UNKNOWN_CMD", JSON.stringify(unk));
 
     // 错误 kbProtocol → PROTOCOL_UNSUPPORTED
-    const bad = await client.callTool("kaiboard_get_board", { requestId: "R12", kbProtocol: "0.9.0", boardId: bid });
+    const bad = await client.callTool("kbfs_get_board", { requestId: "R12", kbProtocol: "0.9.0", boardId: bid });
     check("错误 kbProtocol→PROTOCOL_UNSUPPORTED", bad.ok === false && bad.error?.code === "PROTOCOL_UNSUPPORTED", JSON.stringify(bad));
   } finally {
     await client.close();

@@ -142,36 +142,36 @@ async function partB() {
     const tl = await srv.rpc("tools/list", {});
     check("tools/list 返回 10 个 tool(9命令+listCapabilities)", tl?.result?.tools?.length === 10, JSON.stringify(tl?.result?.tools?.length));
 
-    const cap = await srv.callTool("kaiboard_list_capabilities", { requestId: "cap-1" });
+    const cap = await srv.callTool("kbfs_list_capabilities", { requestId: "cap-1" });
     check("listCapabilities: commands 含 9 命令", cap.ok && cap.result.commands.length === 9, JSON.stringify(cap?.result?.commands));
     check("listCapabilities: storageModes 含 dir", cap.result.storageModes.includes("dir"));
 
-    const c1 = await srv.callTool("kaiboard_create_board", { requestId: "R1", name: "服务端画板" });
+    const c1 = await srv.callTool("kbfs_create_board", { requestId: "R1", name: "服务端画板" });
     check("server createBoard 返回 boardId", c1.ok && !!c1.result.boardId, JSON.stringify(c1));
     const bid = c1.result.boardId;
 
     // 幂等：同 requestId R1 再发一次 → 回放，不重执行（tree 节点数不变）
     const treeBefore = (await readTree(root)).length;
-    const c1b = await srv.callTool("kaiboard_create_board", { requestId: "R1", name: "服务端画板" });
+    const c1b = await srv.callTool("kbfs_create_board", { requestId: "R1", name: "服务端画板" });
     const treeAfter = (await readTree(root)).length;
     check("requestId 幂等：同 R1 回放、tree 节点不翻倍", c1b.ok && treeAfter === treeBefore && treeAfter === 1, `before=${treeBefore} after=${treeAfter}`);
 
-    const bad = await srv.callTool("kaiboard_get_board", { requestId: "R2", kbProtocol: "0.9.0", boardId: bid });
+    const bad = await srv.callTool("kbfs_get_board", { requestId: "R2", kbProtocol: "0.9.0", boardId: bid });
     check("kbProtocol 协商拒绝→PROTOCOL_UNSUPPORTED", bad.ok === false && bad.error?.code === "PROTOCOL_UNSUPPORTED", JSON.stringify(bad));
 
     // 先种一个元素使画板非空：空板 getScreenshot 返回 empty:true 属正常成功（无需渲染），
     // 只有「非空板 + 无 canvas(--dir)」才应回 EXEC_FAILED(screenshot unsupported)，这才是 R1 要验的路径。
-    const seed = await srv.callTool("kaiboard_add_element", {
+    const seed = await srv.callTool("kbfs_add_element", {
       requestId: "R0",
       boardId: bid,
       elements: [{ type: "rectangle", id: "rect-seed", x: 0, y: 0, width: 100, height: 50 }],
     });
     check("server addElement(seed) 通过协议信封返回", seed.ok && seed.result.added === 1, JSON.stringify(seed));
 
-    const shot = await srv.callTool("kaiboard_get_screenshot", { requestId: "R3", boardId: bid });
+    const shot = await srv.callTool("kbfs_get_screenshot", { requestId: "R3", boardId: bid });
     check("getScreenshot 在 --dir 非空板返回 unsupported(R1)", shot.ok === false, JSON.stringify(shot));
 
-    const add = await srv.callTool("kaiboard_add_element", { requestId: "R4", boardId: bid, elements: [RECT] });
+    const add = await srv.callTool("kbfs_add_element", { requestId: "R4", boardId: bid, elements: [RECT] });
     check("server addElement 通过协议信封返回", add.ok && add.result.added === 1, JSON.stringify(add));
   } finally {
     srv.child.kill();
