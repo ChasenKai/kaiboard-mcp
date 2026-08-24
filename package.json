@@ -7,8 +7,11 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "tsc -p packages/core/tsconfig.json",
-    "typecheck:core": "tsc -p packages/core/tsconfig.json"
+    "typecheck": "tsc -p packages/core/tsconfig.json --noEmit",
+    "typecheck:core": "tsc -p packages/core/tsconfig.json --noEmit",
+    "build": "npm run build -w @kaiboard/core && npm run build -w @kaiboard/mcp-server",
+    "build:core": "npm run build -w @kaiboard/core",
+    "e2e": "node packages/server/test/e2e.mjs"
   },
   "license": "MIT",
   "devDependencies": {

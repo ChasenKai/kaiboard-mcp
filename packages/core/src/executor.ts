@@ -3,10 +3,10 @@
 // 都经 StorageAdapter 注入。应用桥（agentBridge）与 MCP 服务端各自实现 StorageAdapter，
 // 本文件逻辑完全复用，保证两端行为一致。
 
-import type { StorageAdapter, AgentCommand, KbSource, Snapshot, FileNode, BoardData } from "./types";
-import { normalizeIncoming, offsetBelow } from "./elements";
-import { pushSnapshot } from "./snapshot";
-import { mermaidToElements } from "./mermaid";
+import type { StorageAdapter, AgentCommand, KbSource, Snapshot, FileNode, BoardData } from "./types.js";
+import { normalizeIncoming, offsetBelow } from "./elements.js";
+import { pushSnapshot } from "./snapshot.js";
+import { mermaidToElements } from "./mermaid.js";
 
 export type ExecResult = { ok: boolean; [k: string]: any };
 

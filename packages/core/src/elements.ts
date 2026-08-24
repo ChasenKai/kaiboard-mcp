@@ -1,6 +1,6 @@
 // @kaiboard/core —— 元素处理工具（纯函数，无存储依赖）
 
-import type { KbSource } from "./types";
+import type { KbSource } from "./types.js";
 
 /** 生成稳定的元素 id（缺失时自动补，供 agent 后续 patch/delete 引用）。 */
 export function genElementId(): string {

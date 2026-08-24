@@ -1,15 +1,11 @@
 {
-  "name": "@kaiboard/core",
+  "name": "@kaiboard/mcp-server",
   "version": "1.0.0",
-  "description": "Storage-agnostic Agent co-drawing command core for KaiBoard (9 commands, StorageAdapter-driven).",
+  "description": "KaiBoard MCP server (local --dir binding): stdio JSON-RPC + fsStorageAdapter, reusing @kaiboard/core.",
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
+  "bin": {
+    "kaiboard-mcp": "./dist/cli.js"
   },
   "files": [
     "dist",
@@ -17,7 +13,11 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@kaiboard/core": "*"
   },
   "peerDependencies": {
     "@excalidraw/excalidraw": "*",
