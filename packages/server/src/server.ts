@@ -58,7 +58,7 @@ const TOOLS = [
         source: { type: "object" },
         opts: { type: "object" },
       },
-      required: ["requestId"],
+      required: [],
     },
   })),
   {
@@ -67,7 +67,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: { kbProtocol: { type: "string" }, requestId: { type: "string" } },
-      required: ["requestId"],
+      required: [],
     },
   },
 ];
