@@ -38,7 +38,34 @@ KaiBoard-MCP/
 ```bash
 npm install          # 安装 workspaces + typescript/@types/node（dev only）
 npm run typecheck   # 仅类型检查 @kaiboard/core（noEmit）
+npm run build       # 构建 @kaiboard/core + @kaiboard/mcp-server 到各自 dist/
+npm run e2e         # partA(Core+fsAdapter 直驱) + partB(真·stdio server) 端到端
+npm run smoke       # 真实 MCP 客户端冒烟（initialize→tools/call 驱动全 9 命令）
 ```
+
+## 启动 MCP 服务端（--dir 绑定本地目录）
+
+```bash
+node packages/server/dist/cli.js --dir <本地文件夹>
+# 或构建后：kaiboard-mcp --dir <本地文件夹>
+```
+
+- 服务端以 **stdio JSON-RPC 2.0** 暴露 10 个 tool：`kaiboard_<cmd>`（9 命令，snake_case）
+  + `kaiboard_list_capabilities`（一等命令，能力声明）。
+- 任意标准 MCP 客户端（WorkBuddy / Cherry Studio / Claude Desktop 等）用 `command` 指向上述
+  命令、`args: ["--dir", "<文件夹>"]` 即可连接；画板数据落 `<文件夹>/kaiboard-data/`，
+  **永不离开本机**（F1=A 零云红线）。
+
+## Headless 限制（--dir 模式）
+
+`--dir` 是纯 Node 服务端、**无浏览器 canvas**，以下两条命令会优雅降级为 `ok:false`（不崩）：
+
+| 命令 | 行为 | 原因 | 后续 |
+|------|------|------|------|
+| `getScreenshot` | 非空板 → `ok:false`，`error.code=EXEC_FAILED`（"screenshot unsupported"） | 无 canvas 渲染 PNG | R1：由含画布的宿主（app / 中继）注入 `renderPng` 钩子 |
+| `fromMermaid` | `ok:false`，`error.code=MERMAID_PARSE_FAILED` | `@excalidraw/mermaid-to-excalidraw` 未在独立服务端安装（peer optional，需宿主注入或显式安装） | M2 决策：是否在 CLI 里装 mermaid-to-excalidraw（其依赖 mermaid.js，浏览器向，需 DOM/headless 方案） |
+
+其余 7 条命令在 `--dir` 下完全可用，且落盘即见（与 app `fsStore.ts` 布局一致）。
 
 ## 依赖边界
 
