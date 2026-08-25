@@ -187,7 +187,17 @@ export async function executeCommand(
         try {
           converted = await mermaidToElements(src, d.opts?.fontSize || 16);
         } catch (e: any) {
-          return { ok: false, error: "mermaid parse failed: " + (e?.message || String(e)) };
+          const msg = e?.message || String(e);
+          // --dir 模式若未显式安装 @excalidraw/mermaid-to-excalidraw（peer optional），
+          // 动态 import 会抛 ERR_MODULE_NOT_FOUND。给出可被 Agent 直接读懂的行动提示。
+          if (/Cannot find (module|package)|ERR_MODULE_NOT_FOUND/i.test(msg)) {
+            return {
+              ok: false,
+              error:
+                "mermaid-to-excalidraw 依赖未安装：--dir 模式需显式安装 @excalidraw/mermaid-to-excalidraw（及其 mermaid 依赖）才能用此命令；或改用 kaiboard-bridge 驱动运行中的 KaiBoard app 以使用 fromMermaid",
+            };
+          }
+          return { ok: false, error: "mermaid parse failed: " + msg };
         }
         // C4：mermaid 源码天然就是「源随图走」的最佳载体
         const source: KbSource = { kind: "mermaid", text: src, ...(typeof d.source === "object" ? d.source : {}) };

@@ -93,6 +93,27 @@ WorkBuddy 里**已有一个** `kaiboard-bridge`（来自 `CKs_KaiBoardDraw_Local
 
 > `--dir` 指向的文件夹首次写入时自动创建（`kaiboard-data/` 子树），无需手动建。
 
+### 在 WorkBuddy 里使用 `kbfs_*` 工具（示例）
+
+信任启用后，直接对 `kbfs_*` 工具发 `tools/call` 即可。每个工具的返回值都包在 MCP 的
+`content[0].text` 里，是一个 **KaiBoard 协议信封**（JSON）：`{ "ok": true, "result": {...} }`
+或 `{ "ok": false, "error": { "code": "...", "message": "..." } }`。`requestId` 可选（不传由服务端补）。
+
+| 想做的事 | 工具 | `arguments`（示例） |
+|----------|------|----------------------|
+| 新建一块空白画板 | `kbfs_create_board` | `{ "name": "需求白板" }` → 回 `result.boardId` |
+| 往画板加图元 | `kbfs_add_element` | `{ "boardId": "<id>", "elements": [{ "type": "rectangle", "id": "r1", "x": 40, "y": 40, "width": 160, "height": 90 }] }` |
+| 回读画板图元 | `kbfs_get_board` | `{ "boardId": "<id>" }` |
+| 局部改属性（按 id patch） | `kbfs_patch_element` | `{ "boardId": "<id>", "patches": [{ "id": "r1", "fill": "red" }] }` |
+| 删元素 | `kbfs_delete_element` | `{ "boardId": "<id>", "ids": ["r1"] }` |
+| 整板替换 | `kbfs_replace_board` | `{ "boardId": "<id>", "elements": [...] }` |
+| 列出所有画板 | `kbfs_list_boards` | `{}` |
+| 查服务端能力 | `kbfs_list_capabilities` | `{}` |
+
+> 数据落 `<文件夹>/kaiboard-data/`（`boards/<id>.json` + `tree.json`），可用 KaiBoard app
+> 直接打开该文件夹，或把 `boards/<id>.json` 当作普通 `.excalidraw` 拖入 KaiBoard —— 即「双存储」桥接。
+> `getScreenshot` / `fromMermaid` 在 `--dir` 下会回 `ok:false`（见上节 Headless 限制），属预期降级。
+
 ## Headless 限制（--dir 模式）
 
 `--dir` 是纯 Node 服务端、**无浏览器 canvas**，以下两条命令会优雅降级为 `ok:false`（不崩）：
