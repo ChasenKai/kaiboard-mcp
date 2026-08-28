@@ -143,7 +143,7 @@ Agent 应先用 `listCapabilities` 探测：若 `dirWarnings` 非空，先提示
 | `fs` | KaiBoard「本地文件夹」设置（File System Access API，Chromium） | `kaiboard-data/boards/<id>.json` + `tree.json`；落板即见 | ⏳ 经 relay（`--relay`）由运行中的 app 提供 |
 | `idb` | 浏览器 IndexedDB（默认，无账号无云） | 仅当前页面可见；Agent 写后需用户操作/切前台才刷新 | ⏳ 同上（relay 绑定） |
 
-**格式铁律（B1/B2 落定）**：`--dir` **主存储 = fs 对齐格式**（`boards/<id>.json` BoardData + `tree.json` 文件树），**不是**"每个 `.excalidraw` 文件=一个画板"。`.excalidraw` / `.kbmeta.json` 仅用于导入导出/交付卡等**互操作场景**，不用于 --dir 的实时存储。`tree.json` 即 manifest，元数据（title/status/version/history）扩展 `tree.json` 的 `FileNode`，不单建 `manifest.json`。
+**格式铁律（B1/B2 落定）**：`--dir` **主存储 = fs 对齐格式**（`boards/<id>.json` BoardData + `tree.json` 文件树），**不是**"每个 `.excalidraw` 文件=一个画板"。`.excalidraw` / `.kbmeta.json` 仅用于导入导出/交互卡等**互操作场景**，不用于 --dir 的实时存储。`tree.json` 即 manifest，元数据（title/status/version/history）扩展 `tree.json` 的 `FileNode`，不单建 `manifest.json`。
 
 > **实现注**：`listCapabilities` 仍广告 `idb/fs/dir` 三种模式（协议层面支持），但 `@kaiboard/mcp-server` 当前 `--dir` 模式实绑 `dir`；`idb`/`fs` 由**同一 `@kaiboard/mcp-server`** 在 `--relay` 模式（驱动运行中的 KaiBoard app）下提供，并非独立 server。这不影响协议正确性——协议是传输无关的，两种绑定各自落地。
 
@@ -254,9 +254,9 @@ Agent 应先用 `listCapabilities` 探测：若 `dirWarnings` 非空，先提示
 
 > **用户画板数据（JSON）绝不离开本机。** 本协议任何命令都**不**传输画板内容到远程服务器。
 
-- 仅允许托管**程序代码**（widget 容器 / 交付卡模板 / 官网——应用层）。
+- 仅允许托管**程序代码**（widget 容器 / 交互卡模板 / 官网——应用层）。
 - 任何"自动把画板数据传服务器"的设计（云端 MCP / 云端 checkpoint / 云端同步）**不做**。
-- **widget 公域托管（M2.5，kaibuddy.com）硬约束**：交付卡/视图的画板 JSON **必须本地渲染、不上传**；公域只托管渲染器代码与模板，画板数据始终在用户机器。违反即破 F1=A。
+- **widget 公域托管（M2.5，kaibuddy.com）硬约束**：交互卡/视图的画板 JSON **必须本地渲染、不上传**；公域只托管渲染器代码与模板，画板数据始终在用户机器。违反即破 F1=A。
 - `--dir` 模式天然零云（Agent 进程直读本地目录，无中继、无上行）。
 - 中继（`--relay`）仅在 `127.0.0.1` 本地环回，不暴露公网。
 
