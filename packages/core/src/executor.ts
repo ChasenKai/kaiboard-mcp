@@ -179,6 +179,28 @@ export async function executeCommand(
         return { ok: true, boardId: id, name: node.name, added: els.length };
       }
 
+      /**
+       * deleteBoard：软删除画板（进回收站，用户可在 UI 回收站还原）。
+       * 安全约束：① 必须显式给 boardId；② 只删 board 类型，文件夹请用 UI；
+       * ③ 拒绝删除当前正打开的画板（避免画布仍显示已删内容的状态不一致）。
+       */
+      case "deleteBoard": {
+        const id = d.boardId;
+        if (!id) return { ok: false, error: "deleteBoard requires boardId" };
+        const node = await adapter.getNode(id);
+        if (!node) return { ok: false, error: "board not found: " + id };
+        if (node.type !== "board") return { ok: false, error: "not a board (use UI to delete folders): " + id };
+        if (adapter.currentBoardId && id === adapter.currentBoardId) {
+          return { ok: false, error: "cannot delete the currently open board; switch to another board first" };
+        }
+        if (typeof adapter.trashNode === "function") {
+          await adapter.trashNode(id);
+          onActivity(`Agent 共绘：已删除画板「${node.name}」（可在回收站还原）`);
+          return { ok: true, deleted: 1, boardId: id, name: node.name, trashed: true };
+        }
+        return { ok: false, error: "unsupported: current storage backend cannot delete boards" };
+      }
+
       /** C5 / P1：Mermaid → 原生可编辑 Excalidraw 图元。 */
       case "fromMermaid": {
         const src = (d.mermaid || "").trim();

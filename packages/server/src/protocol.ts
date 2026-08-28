@@ -14,6 +14,7 @@ export const COMMANDS: AgentCmd[] = [
   "deleteElement",
   "replaceBoard",
   "createBoard",
+  "deleteBoard",
   "fromMermaid",
   "setMetadata",
 ];

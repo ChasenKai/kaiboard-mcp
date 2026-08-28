@@ -46,6 +46,7 @@ export type AgentCmd =
   | "deleteElement"
   | "listBoards"
   | "createBoard"
+  | "deleteBoard"
   | "fromMermaid"
   | "setMetadata";
 
@@ -112,6 +113,12 @@ export interface StorageAdapter {
   putNode(node: FileNode): Promise<void>;
   /** createBoard：写入画板初始数据 */
   putBoardData(id: string, data: BoardData): Promise<void>;
+  /**
+   * deleteBoard：软删除节点（进回收站，可还原）及其全部子孙。
+   * 可选实现——只有能操作文件树的后端（relay/页面 IndexedDB）才有；
+   * --dir fs 模式不实现 → deleteBoard 命令返回 unsupported。
+   */
+  trashNode?(id: string): Promise<void>;
   getMaxOrder(parentId: string | null): Promise<number>;
   getSetting<T>(key: string, fallback: T): Promise<T>;
   setSetting(key: string, value: any): Promise<void>;
