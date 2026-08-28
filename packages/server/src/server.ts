@@ -1,9 +1,10 @@
-// @kaiboard/mcp-server —— stdio JSON-RPC 2.0 MCP 服务端（local --dir 绑定）
-// 复用 mcp-bridge.mjs 的 stdio 骨架，但补齐协议：9 命令 + listCapabilities（一等命令）、
-// kbProtocol 协商（§2）、requestId 幂等（§3）、标准错误码（§8）。
-// 所有命令经 @kaiboard/core 的 executeCommand 执行，存储由 fsStorageAdapter 注入。
+// @kaiboard/mcp-server —— 统一 MCP 服务端（stdio JSON-RPC 2.0）
+// 双模式：--dir（离线 FsStorageAdapter）/ --relay（内建拥有本地中继，命令级转发到运行中 KaiBoard）。
+// 工具名统一 kbfs_*（10 命令 + listCapabilities）。协议：kbProtocol 协商 / requestId 幂等 / 标准错误码。
+// 所有 --dir 命令经 @kaiboard/core 的 executeCommand 执行；--relay 命令经 relay 转发到 app 端同款执行器。
 
 import { createFsStorageAdapter } from "./fsStorageAdapter.js";
+import { startRelay, type RelayHandle } from "./relay-runtime.js";
 import { IdempotencyCache } from "./idempotency.js";
 import {
   KB_PROTOCOL,
@@ -18,6 +19,7 @@ import {
 } from "./protocol.js";
 import { executeCommand } from "@kaiboard/core";
 import { randomUUID } from "node:crypto";
+import { basename } from "node:path";
 import type { AgentCmd, AgentCommand } from "@kaiboard/core";
 
 function camelToSnake(s: string): string {
@@ -57,6 +59,7 @@ const TOOLS = [
         mermaid: { type: "string" },
         source: { type: "object" },
         opts: { type: "object" },
+        metadata: { type: "object" },
       },
       required: [],
     },
@@ -72,9 +75,107 @@ const TOOLS = [
   },
 ];
 
-export function createServer(opts: { rootDir: string }) {
-  const adapter = createFsStorageAdapter(opts.rootDir);
+/** 探测 KaiBoard 中继 /info 返回的当前文件夹名（best-effort，超时即放弃）。 */
+async function probeRelayFolder(relayUrl: string): Promise<string | null> {
+  const u = relayUrl.replace(/\/$/, "");
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 1500);
+  try {
+    const r = await fetch(`${u}/info`, { method: "GET", signal: ctrl.signal });
+    if (!r.ok) return null;
+    const j = (await r.json().catch(() => null)) as any;
+    return j && typeof j.folder === "string" && j.folder ? j.folder : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
+ * M2-3① 配置一致性探测：--dir 末段（basename）应与 KaiBoard 当前文件夹一致。
+ * 不一致 → Agent 写入的内容用户需显式导入才可见，给出明确行动指引（降级显式落板）。
+ * 注：浏览器 FileSystemDirectoryHandle 不暴露真实路径，/info 只能给文件夹名，故比 basename。
+ */
+function computeDirWarnings(rootDir: string, relayFolder: string | null | undefined): string[] {
+  const warnings: string[] = [];
+  if (relayFolder && basename(rootDir) !== relayFolder) {
+    warnings.push(
+      `Agent 工作目录(--dir=${rootDir}) 与 KaiBoard 当前文件夹(${relayFolder}) 不一致：` +
+        `Agent 写入的内容需用户在 KaiBoard 中显式导入才可见；` +
+        `建议把 --dir 指向 KaiBoard 当前文件夹，或在 KaiBoard 设置里将存储文件夹设为同一目录。`,
+    );
+  }
+  return warnings;
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((res) => setTimeout(res, ms));
+}
+
+/** 构造发给中继 /cmd 的指令体（字段与 app 端 agentRelayClient 期望的 RelayCmd 对齐）。 */
+function buildRelayBody(cmd: string, id: string, agentCmd: AgentCommand): any {
+  return {
+    id,
+    cmd,
+    boardId: agentCmd.boardId,
+    elements: agentCmd.elements,
+    patches: agentCmd.patches,
+    ids: agentCmd.ids,
+    name: agentCmd.name,
+    parentId: agentCmd.parentId,
+    mermaid: agentCmd.mermaid,
+    source: agentCmd.source,
+    opts: agentCmd.opts,
+    // 注：app 端 relay 客户端当前不转发 metadata（setMetadata 为 --dir 专属），relay 模式返回 unsupported。
+  };
+}
+
+/**
+ * 命令级转发：POST 到 /cmd，长轮询 /resp 取回（按 id 匹配，20s 超时）。
+ * 端点契约与 bridge-relay.mjs 完全一致，app 端零改动。
+ */
+async function postCommandAndWait(relayUrl: string, token: string, cmdBody: any): Promise<any> {
+  const u = relayUrl.replace(/\/$/, "");
+  const postRes = await fetch(`${u}/cmd?token=${encodeURIComponent(token)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(cmdBody),
+  });
+  if (!postRes.ok) {
+    if (postRes.status === 403) throw new Error("relay token mismatch (403)");
+    throw new Error("relay /cmd POST failed: " + postRes.status);
+  }
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    const r = await fetch(`${u}/resp?token=${encodeURIComponent(token)}`, { method: "GET" });
+    if (r.status === 200) {
+      const body = (await r.json().catch(() => null)) as any;
+      if (body && body.id === cmdBody.id) return body;
+      // id 不匹配（并发响应错序）→ 继续轮询
+    } else if (r.status !== 204) {
+      throw new Error("relay /resp unexpected: " + r.status);
+    }
+    await sleep(150);
+  }
+  throw new Error("relay response timeout (20s)");
+}
+
+export function createServer(opts: { rootDir?: string; relayUrl?: string; mode: "dir" | "relay" }) {
   const cache = new IdempotencyCache();
+
+  // --dir 模式：离线 FsStorageAdapter；--relay 模式：内建拥有本地中继（吸收 Companion+bridge-relay）。
+  const adapter = opts.mode === "dir" ? createFsStorageAdapter(opts.rootDir!) : null;
+  let relay: RelayHandle | null = null;
+  let relayUrl = opts.relayUrl || "http://127.0.0.1:8787";
+  let relayToken: string | null = null;
+  if (opts.mode === "relay") {
+    // 优先用 KAIBOARD_RELAY_URL 指定外部中继基址；令牌走 startRelay 的解析（BRIDGE_TOKEN/KAIBOARD_TOKEN/文件）。
+    relay = startRelay({ token: process.env.BRIDGE_TOKEN || process.env.KAIBOARD_TOKEN || undefined });
+    relayUrl = process.env.KAIBOARD_RELAY_URL || relay.url;
+    relayToken = relay.token;
+  }
+  const relayProbe = probeRelayFolder(relayUrl); // 异步探测 KaiBoard 当前文件夹（M2-3①，仅 --dir 一致性告警用）
   let buf = "";
   let pending = 0;
   let stdinClosed = false;
@@ -90,7 +191,17 @@ export function createServer(opts: { rootDir: string }) {
     const kbProtocol = args.kbProtocol || KB_PROTOCOL;
 
     if (name === "kbfs_list_capabilities") {
-      return envelope(kbProtocol, requestId, listCapabilitiesResult());
+      const folder = opts.mode === "dir" ? await relayProbe : null;
+      const warnings = opts.mode === "dir" ? computeDirWarnings(opts.rootDir!, folder) : [];
+      return envelope(
+        kbProtocol,
+        requestId,
+        listCapabilitiesResult({
+          relayFolder: folder,
+          dirWarnings: warnings,
+          storageMode: opts.mode === "relay" ? "relay" : "dir",
+        }),
+      );
     }
 
     const cmd = TOOL_TO_CMD[name];
@@ -112,11 +223,22 @@ export function createServer(opts: { rootDir: string }) {
       mermaid: args.mermaid,
       source: args.source,
       opts: args.opts,
+      metadata: args.metadata,
     };
 
     // 幂等：同 requestId → 回放缓存，不重执行写操作
     return cache.run(requestId, async () => {
-      const r = await executeCommand(adapter, () => {}, agentCmd);
+      // --relay 模式：命令级转发到运行中 KaiBoard（经内建中继轮询回包），非 StorageAdapter 抽象。
+      if (opts.mode === "relay") {
+        try {
+          const r = await postCommandAndWait(relayUrl, relayToken!, buildRelayBody(cmd, requestId, agentCmd));
+          if (r && r.ok) return envelope(kbProtocol, requestId, r);
+          return errorEnvelope(kbProtocol, requestId, errorCodeFromCore(r?.error), String(r?.error || "relay exec failed"));
+        } catch (e: any) {
+          return errorEnvelope(kbProtocol, requestId, "RELAY_FAILED", String(e?.message || e));
+        }
+      }
+      const r = await executeCommand(adapter!, () => {}, agentCmd);
       if (r.ok) return envelope(kbProtocol, requestId, r);
       return errorEnvelope(kbProtocol, requestId, errorCodeFromCore(r.error), String(r.error || ""));
     });
@@ -165,6 +287,13 @@ export function createServer(opts: { rootDir: string }) {
   }
 
   function start(): void {
+    // M2-3①：--dir 模式启动即探测并告警（stderr），便于发现配置不一致；--relay 模式跳过。
+    if (opts.mode === "dir") {
+      relayProbe.then((folder) => {
+        const w = computeDirWarnings(opts.rootDir!, folder);
+        for (const m of w) process.stderr.write("[kaiboard-mcp] WARN: " + m + "\n");
+      });
+    }
     process.stdin.setEncoding("utf8");
     process.stdin.on("data", (chunk: string) => {
       buf += chunk;
@@ -186,5 +315,5 @@ export function createServer(opts: { rootDir: string }) {
     });
   }
 
-  return { start, _adapter: adapter, _cache: cache };
+  return { start, _adapter: adapter, _cache: cache, _relay: relay };
 }

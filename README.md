@@ -33,6 +33,11 @@ KaiBoard-MCP/
 - `kbProtocol` **跟随本仓库版本号**起步 `1.0.0`（不单列第三根版本轴）。
 - app 仓版本（KaiBoard app）是另一根独立轴。
 
+## 协议
+
+- **权威协议文档：`docs/PROTOCOL-v2.md`**（命令集 / 信封 / 版本协商 / requestId 幂等 / listCapabilities / 错误码 / F1=A 红线 / widget 预留）。
+- 任何 Agent 读一份即可适配；`tools/list` 与文档 §6 命令集保持一致（10 tool = 9 命令 + `kbfs_list_capabilities`）。
+
 ## 本地验证
 
 ```bash
@@ -48,6 +53,8 @@ npm run smoke       # 真实 MCP 客户端冒烟（initialize→tools/call 驱�
 ```bash
 node packages/server/dist/cli.js --dir <本地文件夹>
 # 或构建后：kaiboard-mcp --dir <本地文件夹>
+# 可选：--relay <url>（默认 http://127.0.0.1:8787）启用 M2-3① 配置一致性探测
+kaiboard-mcp --dir <本地文件夹> --relay http://127.0.0.1:8787
 ```
 
 - 服务端以 **stdio JSON-RPC 2.0** 暴露 10 个 tool：`kbfs_<cmd>`（9 命令，snake_case）
@@ -83,9 +90,9 @@ WorkBuddy 里**已有一个** `kaiboard-bridge`（来自 `CKs_KaiBoardDraw_Local
 "kaiboard-mcp": {
   "command": "C:\\Users\\86158\\.workbuddy\\binaries\\node\\versions\\22.22.2\\node.exe",
   "args": [
-    "E:/WorkBuddyData/PProjectManagement/KaiBoard-MCP/packages/server/dist/cli.js",
+    "E:/WorkBuddyData/PProjectManagement/kaiboard/agent/mcp/packages/server/dist/cli.js",
     "--dir",
-    "E:/WorkBuddyData/PProjectManagement/kaiboard-agent-workspace"
+    "E:/WorkBuddyData/PProjectManagement/kaiboard/agent/workspace"
   ],
   "disabled": false
 }

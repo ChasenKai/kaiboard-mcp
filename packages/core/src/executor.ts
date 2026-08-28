@@ -213,6 +213,18 @@ export async function executeCommand(
         return { ...r, fromMermaid: true };
       }
 
+      /** M2-2：设置画板级元数据（status/version/history/comments）。仅 --dir fs 模式支持。 */
+      case "setMetadata": {
+        const id = target || adapter.currentBoardId;
+        if (!id) return { ok: false, error: "setMetadata requires boardId (no current board in this runtime)" };
+        if (!adapter.setMetadata) return { ok: false, error: "metadata unsupported in this runtime" };
+        const partial = d.metadata || {};
+        const ok = await adapter.setMetadata(id, partial);
+        if (!ok) return { ok: false, error: "board node not found: " + id };
+        onActivity(`Agent 共绘：已更新画板元数据「${id}」`);
+        return { ok: true, boardId: id };
+      }
+
       default:
         return { ok: false, error: "unknown cmd" };
     }

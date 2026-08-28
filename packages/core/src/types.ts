@@ -15,6 +15,19 @@ export interface FileNode {
   order?: number;
   /** 软删除时间戳；空 = 未删除（在回收站中可还原） */
   deletedAt?: number | null;
+  /** M2-2 画板级元数据 */
+  status?: string; // 如 draft / review / done
+  version?: number; // 自增版本号
+  history?: Array<{ ts: number; version: number; note?: string }>; // 版本历史
+  comments?: any[]; // 批注 / 回环评论
+}
+
+/** M2-2 画板级元数据包（setMetadata 命令 / StorageAdapter 元数据方法的统一契约）。 */
+export interface KbMeta {
+  status?: string; // 如 draft / review / done
+  version?: number; // 自增版本号
+  history?: Array<{ ts: number; version: number; note?: string }>; // 整段替换（调用方自管历史数组）
+  comments?: any[]; // 整段替换
 }
 
 export interface BoardData {
@@ -33,7 +46,8 @@ export type AgentCmd =
   | "deleteElement"
   | "listBoards"
   | "createBoard"
-  | "fromMermaid";
+  | "fromMermaid"
+  | "setMetadata";
 
 /** C4 源随图走：随图携带的「生成来源」。 */
 export interface KbSource {
@@ -58,6 +72,8 @@ export interface AgentCommand {
   parentId?: string | null;
   /** fromMermaid：mermaid 源码 */
   mermaid?: string;
+  /** M2-2 setMetadata：画板级元数据包 */
+  metadata?: KbMeta;
   /** C4 源随图走 */
   source?: KbSource | string;
   /** getScreenshot / fromMermaid 选项 */
@@ -101,4 +117,7 @@ export interface StorageAdapter {
   setSetting(key: string, value: any): Promise<void>;
   /** 截图渲染（可选）：app 注入 exportToBlob+FileReader；MCP --dir 不注入 → 标记不支持 */
   renderPng?(elements: any[], files: any, appState: any, opts: any): Promise<{ dataUrl: string; bytes: number }>;
+  /** M2-2 画板级元数据（可选）：仅 --dir fs 模式实现；relay/bridge 模式不实现 → setMetadata 命令返回 unsupported */
+  getMetadata?(boardId: string): Promise<KbMeta | null>;
+  setMetadata?(boardId: string, partial: KbMeta): Promise<boolean>;
 }

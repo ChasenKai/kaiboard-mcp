@@ -21,16 +21,29 @@ export function createFsStorageAdapter(rootDir: string): StorageAdapter {
     await fs.mkdir(boardsDir, { recursive: true });
   }
   async function readJson<T>(p: string, fallback: T): Promise<T> {
-    try {
-      const t = await fs.readFile(p, "utf8");
-      return JSON.parse(t) as T;
-    } catch {
-      return fallback;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const t = await fs.readFile(p, "utf8");
+        return JSON.parse(t) as T;
+      } catch (e: any) {
+        // 文件确实不存在 → 直接返回 fallback（首建文件夹场景）
+        if (e?.code === "ENOENT") return fallback;
+        // 否则可能是并发写导致的半截读取：短暂等待后重试，避免兜底成 [] 把整棵 tree 清空
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 30));
+          continue;
+        }
+        return fallback;
+      }
     }
+    return fallback;
   }
   async function writeJson(p: string, data: unknown): Promise<void> {
     await fs.mkdir(dirname(p), { recursive: true });
-    await fs.writeFile(p, JSON.stringify(data, null, 2), "utf8");
+    const tmp = p + ".tmp";
+    // 同文件系统内 rename 是原子操作：读者不会看到半截文件，从根本上杜绝并发读到的 [] 兜底
+    await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
+    await fs.rename(tmp, p);
   }
   async function readTree(): Promise<FileNode[]> {
     return readJson<FileNode[]>(treePath, []);
@@ -149,6 +162,31 @@ export function createFsStorageAdapter(rootDir: string): StorageAdapter {
     },
 
     // renderPng 不注入（--dir headless 无 canvas）→ getScreenshot 返回 unsupported（R1）
+
+    // M2-2 画板级元数据：直接读写 tree.json 中 FileNode 的元数据字段
+    async getMetadata(boardId) {
+      const node = (await readTree()).find((n) => n.id === boardId && !n.deletedAt);
+      if (!node) return null;
+      return {
+        status: node.status,
+        version: node.version,
+        history: node.history,
+        comments: node.comments,
+      };
+    },
+
+    async setMetadata(boardId, partial) {
+      const tree = await readTree();
+      const node = tree.find((n) => n.id === boardId && !n.deletedAt);
+      if (!node) return false;
+      if (typeof partial.status === "string") node.status = partial.status;
+      if (typeof partial.version === "number") node.version = partial.version;
+      if (Array.isArray(partial.history)) node.history = partial.history;
+      if (Array.isArray(partial.comments)) node.comments = partial.comments;
+      node.updatedAt = Date.now();
+      await writeTree(tree);
+      return true;
+    },
   };
 
   return adapter;

@@ -15,6 +15,7 @@ export const COMMANDS: AgentCmd[] = [
   "replaceBoard",
   "createBoard",
   "fromMermaid",
+  "setMetadata",
 ];
 
 /** kbProtocol 协商（§2）：当前仅 1.0.0。缺失=默认接受；其它值→不支持。 */
@@ -49,13 +50,21 @@ export function errorEnvelope(kbProtocol: string, requestId: string, code: strin
   return { kbProtocol, requestId, ok: false, error: { code, message } };
 }
 
-export function listCapabilitiesResult() {
+export function listCapabilitiesResult(extra?: {
+  relayFolder?: string | null;
+  dirWarnings?: string[];
+  storageMode?: "dir" | "relay";
+}) {
   return {
     kbProtocol: KB_PROTOCOL,
     commands: COMMANDS,
     widget: { supported: false, reason: "M2.5 未实现宿主，协议形态已预留" },
-    storageModes: ["idb", "fs", "dir"],
+    storageModes: ["idb", "fs", "dir", "relay"],
+    activeStorageMode: extra?.storageMode ?? "dir",
     snapshot: { max: 20 },
     serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
+    // M2-3①：Agent 侧配置一致性探测结果（relay /info.folder 与 --dir 比对）
+    relayFolder: extra?.relayFolder ?? null,
+    dirWarnings: extra?.dirWarnings ?? [],
   };
 }

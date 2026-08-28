@@ -10,6 +10,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import { createServer as httpCreate } from "node:http";
 import * as core from "@kaiboard/core";
 import { createFsStorageAdapter } from "@kaiboard/mcp-server";
 
@@ -85,6 +86,23 @@ async function partA() {
     const gb = await run("getBoard", { boardId: bid });
     check("getBoard 返回元素", gb.ok && gb.elements.length === 1);
 
+    // M2-2 setMetadata：画板级元数据写回 tree.json FileNode
+    const sm = await run("setMetadata", {
+      boardId: bid,
+      metadata: { status: "done", version: 3, history: [{ ts: Date.now(), version: 3, note: "M2-2 e2e" }] },
+    });
+    check("setMetadata ok", sm.ok && sm.boardId === bid, JSON.stringify(sm));
+    let tree2 = await readTree(root);
+    const node2 = tree2.find((n) => n.id === bid);
+    check("tree.json 节点写入 status=done", node2?.status === "done", JSON.stringify(node2));
+    check("tree.json 节点写入 version=3", node2?.version === 3, JSON.stringify(node2));
+    check("tree.json 节点写入 history[0].note", node2?.history?.[0]?.note === "M2-2 e2e", JSON.stringify(node2?.history));
+    const readMeta = await adapter.getMetadata(bid);
+    check("getMetadata 读回 status/version/history", readMeta?.status === "done" && readMeta?.version === 3 && readMeta?.history?.length === 1, JSON.stringify(readMeta));
+    // 缺 boardId 在无当前画板的 --dir 模式应报错（而非静默成功）
+    const smMissing = await run("setMetadata", { metadata: { status: "x" } });
+    check("setMetadata 缺 boardId(--dir)→ok:false", smMissing.ok === false, JSON.stringify(smMissing));
+
     const layout = await fs.stat(join(root, "kaiboard-data", "tree.json"));
     check("文件系统布局：kaiboard-data/tree.json 存在", layout.isFile());
   } finally {
@@ -92,8 +110,10 @@ async function partA() {
   }
 }
 
-function startServer(dir) {
-  const child = spawn(process.execPath, [join("packages", "server", "dist", "cli.js"), "--dir", dir], {
+function startServer(dir, relayUrl) {
+  const args = [join("packages", "server", "dist", "cli.js"), "--dir", dir];
+  if (relayUrl) args.push("--relay-url", relayUrl); // 仅作一致性探测基址，不切换模式
+  const child = spawn(process.execPath, args, {
     stdio: ["pipe", "pipe", "inherit"],
   });
   let buf = "";
@@ -140,10 +160,10 @@ async function partB() {
     check("initialize 返回 MCP 2024-11-05", init?.result?.protocolVersion === "2024-11-05", JSON.stringify(init?.result));
 
     const tl = await srv.rpc("tools/list", {});
-    check("tools/list 返回 10 个 tool(9命令+listCapabilities)", tl?.result?.tools?.length === 10, JSON.stringify(tl?.result?.tools?.length));
+    check("tools/list 返回 11 个 tool(10命令+listCapabilities)", tl?.result?.tools?.length === 11, JSON.stringify(tl?.result?.tools?.length));
 
     const cap = await srv.callTool("kbfs_list_capabilities", { requestId: "cap-1" });
-    check("listCapabilities: commands 含 9 命令", cap.ok && cap.result.commands.length === 9, JSON.stringify(cap?.result?.commands));
+    check("listCapabilities: commands 含 10 命令", cap.ok && cap.result.commands.length === 10, JSON.stringify(cap?.result?.commands));
     check("listCapabilities: storageModes 含 dir", cap.result.storageModes.includes("dir"));
 
     const c1 = await srv.callTool("kbfs_create_board", { requestId: "R1", name: "服务端画板" });
@@ -173,14 +193,91 @@ async function partB() {
 
     const add = await srv.callTool("kbfs_add_element", { requestId: "R4", boardId: bid, elements: [RECT] });
     check("server addElement 通过协议信封返回", add.ok && add.result.added === 1, JSON.stringify(add));
+
+    // M2-2 setMetadata：经 kbfs_set_metadata 工具写回 tree.json 节点元数据
+    const sm = await srv.callTool("kbfs_set_metadata", { requestId: "R5", boardId: bid, metadata: { status: "review", version: 2 } });
+    check("server setMetadata ok:true", sm.ok && sm.result.ok === true, JSON.stringify(sm));
+    const treeAfterMeta = await readTree(root);
+    const nodeMeta = treeAfterMeta.find((n) => n.id === bid);
+    check("server setMetadata 写回 tree.json(status=review,version=2)", nodeMeta?.status === "review" && nodeMeta?.version === 2, JSON.stringify(nodeMeta));
   } finally {
     srv.child.kill();
     await rm(root, { recursive: true, force: true });
   }
 }
 
+async function startFakeRelay(folderName) {
+  const srv = httpCreate((req, res) => {
+    const url = new URL(req.url, "http://localhost");
+    if (req.method === "GET" && url.pathname === "/info") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ token: "test-token", version: "1.2", port: 0, folder: folderName }));
+      return;
+    }
+    res.writeHead(404);
+    res.end("not found");
+  });
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  const port = srv.address().port;
+  return { url: `http://127.0.0.1:${port}`, close: () => srv.close() };
+}
+
+async function partC() {
+  console.log("\n[C] M2-3① 配置一致性探测（--dir 与 relay /info.folder 比对）");
+  // 一致：--dir 末段 == folder → 无告警
+  {
+    const relay = await startFakeRelay("KaiBoardFolder");
+    const root = await mkdtemp(join(tmpdir(), "kb-e2e-c1-"));
+    const matchDir = join(root, "KaiBoardFolder");
+    await fs.mkdir(matchDir, { recursive: true });
+    const srv = startServer(matchDir, relay.url);
+    try {
+      await srv.rpc("initialize", {});
+      const cap = await srv.callTool("kbfs_list_capabilities", { requestId: "c1" });
+      check("relayFolder 透传", cap.ok && cap.result.relayFolder === "KaiBoardFolder", JSON.stringify(cap?.result?.relayFolder));
+      check("一致(--dir末段==folder)→dirWarnings 为空", Array.isArray(cap.result.dirWarnings) && cap.result.dirWarnings.length === 0, JSON.stringify(cap?.result?.dirWarnings));
+    } finally {
+      srv.child.kill();
+      await relay.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+  // 不一致：--dir 末段 != folder → 有告警且含行动指引
+  {
+    const relay = await startFakeRelay("KaiBoardFolder");
+    const root = await mkdtemp(join(tmpdir(), "kb-e2e-c2-"));
+    const otherDir = join(root, "OtherFolder");
+    await fs.mkdir(otherDir, { recursive: true });
+    const srv = startServer(otherDir, relay.url);
+    try {
+      await srv.rpc("initialize", {});
+      const cap = await srv.callTool("kbfs_list_capabilities", { requestId: "c2" });
+      check("不一致(--dir末段!=folder)→dirWarnings 非空", cap.ok && Array.isArray(cap.result.dirWarnings) && cap.result.dirWarnings.length >= 1, JSON.stringify(cap?.result?.dirWarnings));
+      check("告警含「显式导入才可见」行动指引", cap.result.dirWarnings.some((w) => w.includes("显式导入才可见")), JSON.stringify(cap?.result?.dirWarnings));
+    } finally {
+      srv.child.kill();
+      await relay.close();
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+  // relay 不可达 → 无告警（静默，不阻塞）
+  {
+    const root = await mkdtemp(join(tmpdir(), "kb-e2e-c3-"));
+    const srv = startServer(root, "http://127.0.0.1:1");
+    try {
+      await srv.rpc("initialize", {});
+      const cap = await srv.callTool("kbfs_list_capabilities", { requestId: "c3" });
+      check("relay 不可达→relayFolder=null 且无告警", cap.ok && cap.result.relayFolder === null && cap.result.dirWarnings.length === 0, JSON.stringify(cap?.result));
+    } finally {
+      srv.child.kill();
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+}
+
 console.log("=== KaiBoard-MCP M1-3 E2E ===");
 await partA();
 await partB();
+await partC();
 console.log(`\n结果：PASS=${pass}  FAIL=${fail}`);
 process.exit(fail === 0 ? 0 : 1);

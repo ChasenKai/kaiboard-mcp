@@ -103,13 +103,14 @@ async function main() {
 
     const tl = await client.send("tools/list", {});
     const names = tl?.result?.tools?.map((t) => t.name) || [];
-    check("tools/list=10（9命令+listCapabilities）", names.length === 10, JSON.stringify(names.length));
+    check("tools/list=11（10命令+listCapabilities）", names.length === 11, JSON.stringify(names.length));
     check("含 kbfs_list_capabilities", names.includes("kbfs_list_capabilities"));
     check("含 kbfs_create_board（snake_case）", names.includes("kbfs_create_board"));
+    check("含 kbfs_set_metadata（M2-2）", names.includes("kbfs_set_metadata"));
 
     // listCapabilities
     const cap = await client.callTool("kbfs_list_capabilities", { requestId: "cap" });
-    check("listCapabilities: commands=9", cap.ok && cap.result.commands.length === 9, JSON.stringify(cap?.result?.commands));
+    check("listCapabilities: commands=10", cap.ok && cap.result.commands.length === 10, JSON.stringify(cap?.result?.commands));
     check("listCapabilities: storageModes 含 dir", cap.result.storageModes.includes("dir"));
 
     // createBoard
@@ -150,6 +151,10 @@ async function main() {
     // listBoards
     const lb = await client.callTool("kbfs_list_boards", { requestId: "R10" });
     check("listBoards 含该画板节点", lb.ok && lb.result.nodes.some((n) => n.id === bid), JSON.stringify(lb?.result?.nodes));
+
+    // M2-2 setMetadata
+    const sm = await client.callTool("kbfs_set_metadata", { requestId: "RM1", boardId: bid, metadata: { status: "done", version: 1 } });
+    check("setMetadata ok:true（kbfs_set_metadata 工具）", sm.ok && sm.result.ok === true, JSON.stringify(sm));
 
     // 未知命令 → UNKNOWN_CMD
     const unk = await client.callTool("kbfs_no_such_cmd", { requestId: "R11" });
