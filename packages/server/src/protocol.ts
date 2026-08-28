@@ -56,6 +56,8 @@ export function listCapabilitiesResult(extra?: {
   storageMode?: "dir" | "relay";
   relayAvailable?: boolean;
   dirAvailable?: boolean;
+  /** M2-4：KaiBoard 页面是否已连接到中继（= 用户是否正开着画板）。 */
+  pageConnected?: boolean;
 }) {
   return {
     kbProtocol: KB_PROTOCOL,
@@ -71,5 +73,8 @@ export function listCapabilitiesResult(extra?: {
     // Plan A #376：声明当前已启用的后端能力，供 SKILL 侧按 storage 路由决策
     relayAvailable: extra?.relayAvailable ?? false,
     dirAvailable: extra?.dirAvailable ?? false,
+    // M2-4：页面是否已连上中继。relayAvailable 只代表中继进程在跑，pageConnected 才代表
+    // 用户真的开着画板——SKILL 侧降级规则应优先看这个字段。
+    pageConnected: extra?.pageConnected ?? false,
   };
 }

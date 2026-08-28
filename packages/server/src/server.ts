@@ -95,6 +95,34 @@ async function probeRelayFolder(relayUrl: string): Promise<string | null> {
 }
 
 /**
+ * M2-4 连接探测：查中继「KaiBoard 页面是否已连接」= 用户是否正开着画板。
+ * 相比用 listBoards 试错（无连接时要等 20s 才超时），这里是 1.5s 内返回的快查。
+ * 返回 null = 探测失败（中继未起 / 超时），调用方按 false 处理。
+ */
+async function probeRelayConnection(
+  relayUrl: string,
+  token: string | null,
+): Promise<boolean | null> {
+  if (!token) return null;
+  const u = relayUrl.replace(/\/$/, "");
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 1500);
+  try {
+    const r = await fetch(`${u}/state?token=${encodeURIComponent(token)}`, {
+      method: "GET",
+      signal: ctrl.signal,
+    });
+    if (!r.ok) return null;
+    const j = (await r.json().catch(() => null)) as any;
+    return j && typeof j.connected === "boolean" ? j.connected : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
  * M2-3① 配置一致性探测：--dir 末段（basename）应与 KaiBoard 当前文件夹一致。
  * 不一致 → Agent 写入的内容用户需显式导入才可见，给出明确行动指引（降级显式落板）。
  * 注：浏览器 FileSystemDirectoryHandle 不暴露真实路径，/info 只能给文件夹名，故比 basename。
@@ -198,6 +226,10 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; relay:
     if (name === "kbfs_list_capabilities") {
       const folder = relayStarted ? await relayProbe : null;
       const warnings = opts.rootDir ? computeDirWarnings(opts.rootDir, folder) : [];
+      // M2-4：页面是否真连上（relayAvailable 只代表中继进程在跑）
+      const pageConnected = relayStarted
+        ? ((await probeRelayConnection(relayUrl, relayToken)) ?? false)
+        : false;
       return envelope(
         kbProtocol,
         requestId,
@@ -207,6 +239,7 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; relay:
           storageMode: relayStarted ? "relay" : "dir",
           relayAvailable: relayStarted,
           dirAvailable: !!adapter,
+          pageConnected,
         }),
       );
     }

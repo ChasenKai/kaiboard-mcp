@@ -62,6 +62,11 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
   const cmdWaiters: Array<(c: any) => void> = [];
   const respWaiters: Array<(c: any) => void> = [];
   let lastFolder: string | null = null;
+  // M2-4 连接探测：KaiBoard 页面（agentRelayClient）长轮询 GET /cmd 时刷新。
+  // 用途：让 Agent 快查「用户是否正开着画板」，不必等 /resp 的 20s 超时才判断。
+  let lastClientSeenAt: number | null = null;
+  /** 判定页面在线的时间窗（ms）：覆盖一次 20s 长轮询周期 + 重连间隔。 */
+  const CLIENT_SEEN_WINDOW_MS = 30000;
 
   function readBody(req: http.IncomingMessage, cb: (b: any) => void) {
     let d = "";
@@ -109,6 +114,22 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
       res.end("forbidden");
       return;
     }
+    // M2-4：GET /state = 查询「页面是否已连接」（Agent 侧快查用，需 token）。
+    // 注：POST /state 语义不同（页面向中继上报当前文件夹），两者并存不冲突。
+    if (req.method === "GET" && url.pathname === "/state") {
+      const now = Date.now();
+      const connected =
+        cmdWaiters.length > 0 ||
+        (lastClientSeenAt !== null && now - lastClientSeenAt < CLIENT_SEEN_WINDOW_MS);
+      json(res, {
+        connected,
+        lastSeenAt: lastClientSeenAt,
+        folder: lastFolder,
+        waiters: cmdWaiters.length,
+        windowMs: CLIENT_SEEN_WINDOW_MS,
+      });
+      return;
+    }
     if (req.method === "POST" && url.pathname === "/cmd") {
       readBody(req, (b) => {
         pendingCmd = b;
@@ -119,6 +140,8 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
       return;
     }
     if (req.method === "GET" && url.pathname === "/cmd") {
+      // 页面来长轮询取指令 = 用户正开着 KaiBoard
+      lastClientSeenAt = Date.now();
       if (pendingCmd) {
         const c = pendingCmd;
         pendingCmd = null;
@@ -135,6 +158,13 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
         json(res, c);
       };
       cmdWaiters.push(w);
+      // 客户端断开（页面关闭/刷新）时立即清理 waiter，避免残留导致
+      // M2-4 连接在页面已关闭后仍被误判为在线（原逻辑只在 20s 超时才清理）。
+      req.on("close", () => {
+        clearTimeout(t);
+        const i = cmdWaiters.indexOf(w);
+        if (i >= 0) cmdWaiters.splice(i, 1);
+      });
       return;
     }
     if (req.method === "POST" && url.pathname === "/resp") {
@@ -163,6 +193,12 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
         json(res, c);
       };
       respWaiters.push(w);
+      // 同上：Agent 侧断开时及时清理，避免 waiter 残留（资源泄漏）。
+      req.on("close", () => {
+        clearTimeout(t);
+        const i = respWaiters.indexOf(w);
+        if (i >= 0) respWaiters.splice(i, 1);
+      });
       return;
     }
     res.writeHead(404);
