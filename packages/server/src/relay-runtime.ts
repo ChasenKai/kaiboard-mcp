@@ -134,7 +134,13 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
       readBody(req, (b) => {
         pendingCmd = b;
         const w = cmdWaiters.shift();
-        if (w) w(b);
+        // #178 根治：命令已被挂起的 waiter 取走时必须清空 pendingCmd。
+        // 否则页面下一次 GET /cmd 会再次拿到同一条指令 → 被执行两次
+        // （表现：addElement 产生重复 id 元素，历史上只能用 replaceBoard 幂等规避）。
+        if (w) {
+          pendingCmd = null;
+          w(b);
+        }
         json(res, { ok: true });
       });
       return;
@@ -171,7 +177,12 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
       readBody(req, (b) => {
         pendingResp = b;
         const w = respWaiters.shift();
-        if (w) w(b);
+        // 同 #178：响应已被 Agent 长轮询取走时必须清空 pendingResp，
+        // 否则下一次 GET /resp 会重复消费同一条响应（Agent 拿到上一笔的结果）。
+        if (w) {
+          pendingResp = null;
+          w(b);
+        }
         json(res, { ok: true });
       });
       return;
