@@ -28,8 +28,8 @@ function camelToSnake(s: string): string {
 }
 
 // 工具名采用 MCP 惯用的 snake_case：kbfs_<cmd 的 snake 形式>（kbfs = KaiBoard File-System 模式）。
-// 前缀刻意区别于现有 kaiboard-bridge（其工具名为 kaiboard_*，驱动运行中的 KaiBoard app 中继），
-// 避免同一 Agent 下两套 server 工具名撞车。建立 工具名↔cmd 双向映射，dispatch 时直接用反向查表。
+// 前缀刻意区别于旧的 kaiboard-bridge（已退役，其工具名为 kaiboard_*，原驱动运行中的 KaiBoard app 中继），
+// 避免与历史命名混淆。建立 工具名↔cmd 双向映射，dispatch 时直接用反向查表。
 const TOOL_TO_CMD: Record<string, AgentCmd> = Object.fromEntries(
   COMMANDS.map((cmd) => ["kbfs_" + camelToSnake(cmd), cmd]),
 );

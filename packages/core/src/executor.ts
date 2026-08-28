@@ -194,7 +194,7 @@ export async function executeCommand(
             return {
               ok: false,
               error:
-                "mermaid-to-excalidraw 依赖未安装：--dir 模式需显式安装 @excalidraw/mermaid-to-excalidraw（及其 mermaid 依赖）才能用此命令；或改用 kaiboard-bridge 驱动运行中的 KaiBoard app 以使用 fromMermaid",
+                "mermaid-to-excalidraw 依赖未安装：--dir 模式需显式安装 @excalidraw/mermaid-to-excalidraw（及其 mermaid 依赖）才能用此命令；或改用 kaiboard-mcp --relay 驱动运行中的 KaiBoard app 以使用 fromMermaid",
             };
           }
           return { ok: false, error: "mermaid parse failed: " + msg };

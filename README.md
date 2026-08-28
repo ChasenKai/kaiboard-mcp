@@ -63,27 +63,28 @@ kaiboard-mcp --dir <本地文件夹> --relay http://127.0.0.1:8787
   命令、`args: ["--dir", "<文件夹>"]` 即可连接；画板数据落 `<文件夹>/kaiboard-data/`，
   **永不离开本机**（F1=A 零云红线）。
 
-### 与现有 `kaiboard-bridge` 的关系（重要）
+### 单包双能力（`--dir` 与 `--relay` 可叠加，非两个包）
 
-WorkBuddy 里**已有一个** `kaiboard-bridge`（来自 `CKs_KaiBoardDraw_Local` skill）：它把工具命名为
-`kaiboard_*`，经 127.0.0.1:8787 中继到**运行中的 KaiBoard app**（截图 / 思维导图都可用，存用户 IndexedDB）。
+`@kaiboard/mcp-server` 是**单一包**，通过同一组 `kbfs_*` 工具提供两种可叠加的能力，不存在第二套 server：
 
-本服务端是**另一路**——`kbfs_*`（KaiBoard File-System 模式）：不依赖 app、不依赖中继，**零云**、自带
-`--dir` 文件夹（架构上的「双存储」第二路）。两路工具前缀刻意错开（`kaiboard_*` vs `kbfs_*`），
-**可同时启用、不会撞名**。
+- **`--dir` 模式（零云）**：不依赖 app、不依赖中继，自带本地文件夹 `<文件夹>/kaiboard-data/`（架构上的「双存储」第二路），**永不离开本机**（F1=A 零云红线）。
+- **`--relay` 模式（驱动运行中的 app）**：内建本地中继（吸收原 `bridge-relay` + Companion），经 127.0.0.1:8787 中继到**运行中的 KaiBoard app**（截图 / 思维导图 / Mermaid 都可用，存用户 IndexedDB）。
+- 两者可同时启用：`kaiboard-mcp --relay --dir <path>`，工具前缀统一为 `kbfs_*`。
 
-| 维度 | `kaiboard-bridge` | `kbfs_*`（本服务端） |
-|------|-------------------|----------------------|
-| 后端 | 运行中的 KaiBoard app（IndexedDB） | 本地 `--dir` 文件夹（fs） |
-| 需要 app 开着？ | 是（且「Agent 共绘」开关 ON） | 否 |
-| getScreenshot | ✅ 真实 PNG | ❌ 降级 `ok:false`（无 canvas） |
-| fromMermaid | ✅ 原生图元 | ❌ 降级 `ok:false`（无 mermaid 依赖） |
-| 数据存储 | 用户 KaiBoard 库 | `<文件夹>/kaiboard-data/` |
-| 典型用途 | Agent 直接动用户的真实画板 | Agent 自有的、零云的独立工作区 |
+> **历史说明（2026-08-28 退役）**：早期曾有一套独立 `mcp-bridge.mjs`（工具名 `kaiboard_*`、仅 3 工具，来自 `CKs_KaiBoardDraw_Local` skill），已于统一收口时**退役删除**，其全部能力已被 `kbfs_*` + `--relay` 覆盖。当前唯一 MCP 包 = `@kaiboard/mcp-server`（`kaiboard-mcp`）。
+
+| 维度 | `--dir` 模式（零云） | `--relay` 模式（驱动 app） |
+|------|----------------------|----------------------------|
+| 后端 | 本地 `--dir` 文件夹（fs） | 运行中的 KaiBoard app（IndexedDB） |
+| 需要 app 开着？ | 否 | 是（且「Agent 共绘」开关 ON） |
+| getScreenshot | ❌ 降级 `ok:false`（无 canvas） | ✅ 真实 PNG |
+| fromMermaid | ❌ 降级 `ok:false`（无 mermaid 依赖） | ✅ 原生图元 |
+| 数据存储 | `<文件夹>/kaiboard-data/` | 用户 KaiBoard 库 |
+| 典型用途 | Agent 自有的、零云的独立工作区 | Agent 直接动用户的真实画板 |
 
 ### 接进 WorkBuddy（mcp.json 片段）
 
-将下面这段加进 `~/.workbuddy/mcp.json` 的 `mcpServers`（与 `kaiboard-bridge` 并列，**不冲突**），
+将下面这段加进 `~/.workbuddy/mcp.json` 的 `mcpServers`，
 然后在连接器管理页面对 `kaiboard-mcp` 点「信任」即可启用：
 
 ```json

@@ -23,9 +23,9 @@
 | 绑定 | 触发 | 传输 | 实现 | 说明 |
 |---|---|---|---|---|
 | **local（`--dir`）** | `kaiboard-mcp --dir <文件夹>` | 直读直写本地目录（无页面、无中继） | **`@kaiboard/mcp-server`**（本仓） | Agent 进程内嵌 StorageAdapter（`fsStorageAdapter`）；落板即见（fs 对齐格式）。**M1-3 产品主线** |
-| **relay（`--bridge`）** | `kaiboard-bridge --bridge` | HTTP（本地 `127.0.0.1` relay，页面已授权） | **`kaiboard-bridge`**（独立 relay MCP，工具前缀 `kaiboard_*`） | 复用 `bridge-relay.mjs` / `mcp-bridge.mjs`；需用户开页面 + 「Agent 共绘」ON。**兼容旧工作流的次要绑定** |
+| **relay（`--relay`）** | `kaiboard-mcp --relay` | HTTP（本地 `127.0.0.1` 中继，页面已授权） | **`@kaiboard/mcp-server`**（同一包，内建 `relay-runtime.ts`，吸收原 bridge-relay + Companion） | 工具前缀 `kbfs_*`；需用户开页面 + 「Agent 共绘」ON。**可与 `--dir` 叠加（非互斥）** |
 
-> **两路并存、前缀错开**：`kbfs_*`（本仓 `--dir` 主线）与 `kaiboard_*`（旧 relay 路）工具名刻意不撞车，同一 Agent 下可同时挂两套 server。
+> **单包双能力、可叠加**：`--relay`（实时共绘，主）与 `--dir`（离线文件夹资产库，可选）同属 `@kaiboard/mcp-server`，可同时启用；`--relay` 模式下 `idb`/`fs` 由运行中的 app 经中继提供。旧 `kaiboard-bridge` / `mcp-bridge.mjs` / `bridge-relay.mjs` / `KaiBoard-Relay.exe` 已于 2026-08-28 退役删除，不存在第二套 server。
 > 协议规定"命令说什么/回什么"，不规定"走哪条线"。两种绑定都必须满足本协议的信封与语义。
 
 ---
@@ -140,12 +140,12 @@ Agent 应先用 `listCapabilities` 探测：若 `dirWarnings` 非空，先提示
 | mode | 含义 | 寻址/可见性 | 当前 `@kaiboard/mcp-server` 实绑 |
 |---|---|---|---|
 | `dir` | `--dir` 模式，Agent 工作文件夹（**fs 对齐格式**） | `boards/<id>.json` + `tree.json`；可读名经 tree.json 映射，Agent 只见名字不见 UUID | ✅ **已实绑（M1-3 主线）** |
-| `fs` | KaiBoard「本地文件夹」设置（File System Access API，Chromium） | `kaiboard-data/boards/<id>.json` + `tree.json`；落板即见 | ⏳ 经 relay(`--bridge`) 绑定由运行中的 app 提供 |
+| `fs` | KaiBoard「本地文件夹」设置（File System Access API，Chromium） | `kaiboard-data/boards/<id>.json` + `tree.json`；落板即见 | ⏳ 经 relay（`--relay`）由运行中的 app 提供 |
 | `idb` | 浏览器 IndexedDB（默认，无账号无云） | 仅当前页面可见；Agent 写后需用户操作/切前台才刷新 | ⏳ 同上（relay 绑定） |
 
 **格式铁律（B1/B2 落定）**：`--dir` **主存储 = fs 对齐格式**（`boards/<id>.json` BoardData + `tree.json` 文件树），**不是**"每个 `.excalidraw` 文件=一个画板"。`.excalidraw` / `.kbmeta.json` 仅用于导入导出/交付卡等**互操作场景**，不用于 --dir 的实时存储。`tree.json` 即 manifest，元数据（title/status/version/history）扩展 `tree.json` 的 `FileNode`，不单建 `manifest.json`。
 
-> **实现注**：`listCapabilities` 仍广告 `idb/fs/dir` 三种模式（协议层面支持），但 `@kaiboard/mcp-server` 当前仅实绑 `dir`；`idb`/`fs` 由独立的 `kaiboard-bridge`（relay 绑定）在"驱动运行中的 KaiBoard app"时提供。这不影响协议正确性——协议是传输无关的，两种绑定各自落地。
+> **实现注**：`listCapabilities` 仍广告 `idb/fs/dir` 三种模式（协议层面支持），但 `@kaiboard/mcp-server` 当前 `--dir` 模式实绑 `dir`；`idb`/`fs` 由**同一 `@kaiboard/mcp-server`** 在 `--relay` 模式（驱动运行中的 KaiBoard app）下提供，并非独立 server。这不影响协议正确性——协议是传输无关的，两种绑定各自落地。
 
 ---
 
@@ -202,7 +202,7 @@ Agent 应先用 `listCapabilities` 探测：若 `dirWarnings` 非空，先提示
 - 参数：`{ mermaid: string, boardId?, opts?: { replace?, fontSize? }, source? }`
 - 响应：`{ ok: true, replaced|added, fromMermaid: true, files?: number }`
 - 说明：Mermaid 源码 → 原生可编辑 Excalidraw 图元；`opts.replace` 整板替换（自动快照），否则追加。`source.kind` 自动置 `"mermaid"`。
-- **依赖注（`--dir` 绑定）**：需显式安装 peer 依赖 `@excalidraw/mermaid-to-excalidraw`（及其 `mermaid` 依赖），否则动态 import 失败 → 返回**可被 Agent 直接读懂的行动提示**（建议改走 `kaiboard-bridge` 驱动运行中的 app 以使用本命令）。
+- **依赖注（`--dir` 绑定）**：需显式安装 peer 依赖 `@excalidraw/mermaid-to-excalidraw`（及其 `mermaid` 依赖），否则动态 import 失败 → 返回**可被 Agent 直接读懂的行动提示**（建议改走 `kaiboard-mcp --relay` 驱动运行中的 app 以使用本命令）。
 - 错误：`MERMAID_PARSE_FAILED`（空 mermaid 或解析失败）
 
 ### 6.10 setMetadata（写 · M2-2 画板级元数据）
@@ -212,7 +212,7 @@ Agent 应先用 `listCapabilities` 探测：若 `dirWarnings` 非空，先提示
   - `history?`：**整段替换**的版本历史数组 `{ ts, version, note? }[]`（调用方自管历史数组；如需追加请读取现有 history 后拼接再整体回传）。
   - `comments?`：**整段替换**的批注/回环评论数组。
 - 响应：`{ ok: true, boardId }`
-- 说明：把元数据合并写回 `tree.json` 的 `FileNode`（落板即见）。仅 `kbfs_*`（`--dir`）绑定实现；`kaiboard-*`（`--bridge`）绑定当前未实现 `setMetadata`，返回 `{ ok: false, error: "metadata unsupported in this runtime" }` → 协议错误码 `EXEC_FAILED`。
+- 说明：把元数据合并写回 `tree.json` 的 `FileNode`（落板即见）。仅 `--dir` 绑定实现 `setMetadata`；relay（`--relay`）模式下当前未实现该命令，返回 `{ ok: false, error: "metadata unsupported in this runtime" }` → 协议错误码 `EXEC_FAILED`。
 - 寻址：缺省 `boardId` 且当前运行无「当前画板」上下文（`--dir` 模式）时 → 返回 `{ ok: false, error: "setMetadata requires boardId ..." }`（`EXEC_FAILED`）。`--dir` 模式请始终显式传 `boardId`。
 - 错误：`EXEC_FAILED`（运行时不支持 / 缺 boardId / 节点不存在）。
 
@@ -237,7 +237,7 @@ Agent 应先用 `listCapabilities` 探测：若 `dirWarnings` 非空，先提示
 
 | code | 含义 | HTTP 类比 | 当前 `@kaiboard/mcp-server` 实返 |
 |---|---|---|---|
-| `BAD_TOKEN` | token 不匹配 / 未授权 | 401 | ⏳ relay 绑定由 `kaiboard-bridge` 校验 |
+| `BAD_TOKEN` | token 不匹配 / 未授权 | 401 | ⏳ relay 绑定由 `kaiboard-mcp --relay` 校验 |
 | `BAD_TYPE` | 信封/命令体畸形（如缺失 `cmd`） | 400 | ✅ `executeCommand` 对空 `cmd` 返回 `bad command` → 映射 `BAD_TYPE` |
 | `UNKNOWN_CMD` | 命令不在白名单 | 404 | ✅ `TOOL_TO_CMD` 未命中 / core `unknown cmd` |
 | `BOARD_NOT_FOUND` | `boardId` 指向不存在的画板 | 404 | 保留（当前 core 对缺失 board 返回空数组而非报错；relay 绑定可能强校验） |
@@ -258,7 +258,7 @@ Agent 应先用 `listCapabilities` 探测：若 `dirWarnings` 非空，先提示
 - 任何"自动把画板数据传服务器"的设计（云端 MCP / 云端 checkpoint / 云端同步）**不做**。
 - **widget 公域托管（M2.5，kaibuddy.com）硬约束**：交付卡/视图的画板 JSON **必须本地渲染、不上传**；公域只托管渲染器代码与模板，画板数据始终在用户机器。违反即破 F1=A。
 - `--dir` 模式天然零云（Agent 进程直读本地目录，无中继、无上行）。
-- 中继（--bridge）仅在 `127.0.0.1` 本地环回，不暴露公网。
+- 中继（`--relay`）仅在 `127.0.0.1` 本地环回，不暴露公网。
 
 ---
 
@@ -285,5 +285,5 @@ Agent 应先用 `listCapabilities` 探测：若 `dirWarnings` 非空，先提示
 | replaceBoard | `kbfs_replace_board` | core replaceBoard |
 | createBoard | `kbfs_create_board` | core createBoard |
 | fromMermaid | `kbfs_from_mermaid` | core fromMermaid |
-| setMetadata | `kbfs_set_metadata` | core setMetadata（`--dir` 实现；`--bridge` 未实现 → EXEC_FAILED） |
+| setMetadata | `kbfs_set_metadata` | core setMetadata（`--dir` 实现；relay 模式未实现 → EXEC_FAILED） |
 | listCapabilities | `kbfs_list_capabilities` | `server/protocol.ts` listCapabilitiesResult |
