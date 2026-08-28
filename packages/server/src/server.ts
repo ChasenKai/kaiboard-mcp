@@ -1,5 +1,6 @@
 // @kaiboard/mcp-server —— 统一 MCP 服务端（stdio JSON-RPC 2.0）
-// 双模式：--dir（离线 FsStorageAdapter）/ --relay（内建拥有本地中继，命令级转发到运行中 KaiBoard）。
+// 双能力（Plan A #376，非互斥）：--relay（内建拥有本地中继，命令级转发到运行中 KaiBoard）可独立启用；
+//   --dir（离线 FsStorageAdapter）为可叠加可选能力。两者可同时持有，命令按 args.storage 路由（默认 relay）。
 // 工具名统一 kbfs_*（10 命令 + listCapabilities）。协议：kbProtocol 协商 / requestId 幂等 / 标准错误码。
 // 所有 --dir 命令经 @kaiboard/core 的 executeCommand 执行；--relay 命令经 relay 转发到 app 端同款执行器。
 
@@ -60,6 +61,7 @@ const TOOLS = [
         source: { type: "object" },
         opts: { type: "object" },
         metadata: { type: "object" },
+        storage: { type: "string", enum: ["relay", "dir"], description: "可选：强制后端。默认 relay（若已启用）；dir=离线写盘（需 --dir 启动）。" },
       },
       required: [],
     },
@@ -161,19 +163,22 @@ async function postCommandAndWait(relayUrl: string, token: string, cmdBody: any)
   throw new Error("relay response timeout (20s)");
 }
 
-export function createServer(opts: { rootDir?: string; relayUrl?: string; mode: "dir" | "relay" }) {
+export function createServer(opts: { rootDir?: string; relayUrl?: string; relay: boolean }) {
   const cache = new IdempotencyCache();
 
-  // --dir 模式：离线 FsStorageAdapter；--relay 模式：内建拥有本地中继（吸收 Companion+bridge-relay）。
-  const adapter = opts.mode === "dir" ? createFsStorageAdapter(opts.rootDir!) : null;
+  // --dir 为可叠加可选能力：传了 rootDir 就建 FsStorageAdapter（不依赖 relay 是否启用）。
+  // --relay 为主路径：启用内建本地中继（吸收 Companion+bridge-relay）。
+  const adapter = opts.rootDir ? createFsStorageAdapter(opts.rootDir) : null;
   let relay: RelayHandle | null = null;
   let relayUrl = opts.relayUrl || "http://127.0.0.1:8787";
   let relayToken: string | null = null;
-  if (opts.mode === "relay") {
+  let relayStarted = false;
+  if (opts.relay) {
     // 优先用 KAIBOARD_RELAY_URL 指定外部中继基址；令牌走 startRelay 的解析（BRIDGE_TOKEN/KAIBOARD_TOKEN/文件）。
     relay = startRelay({ token: process.env.BRIDGE_TOKEN || process.env.KAIBOARD_TOKEN || undefined });
     relayUrl = process.env.KAIBOARD_RELAY_URL || relay.url;
     relayToken = relay.token;
+    relayStarted = true;
   }
   const relayProbe = probeRelayFolder(relayUrl); // 异步探测 KaiBoard 当前文件夹（M2-3①，仅 --dir 一致性告警用）
   let buf = "";
@@ -191,15 +196,17 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; mode: 
     const kbProtocol = args.kbProtocol || KB_PROTOCOL;
 
     if (name === "kbfs_list_capabilities") {
-      const folder = opts.mode === "dir" ? await relayProbe : null;
-      const warnings = opts.mode === "dir" ? computeDirWarnings(opts.rootDir!, folder) : [];
+      const folder = relayStarted ? await relayProbe : null;
+      const warnings = opts.rootDir ? computeDirWarnings(opts.rootDir, folder) : [];
       return envelope(
         kbProtocol,
         requestId,
         listCapabilitiesResult({
           relayFolder: folder,
           dirWarnings: warnings,
-          storageMode: opts.mode === "relay" ? "relay" : "dir",
+          storageMode: relayStarted ? "relay" : "dir",
+          relayAvailable: relayStarted,
+          dirAvailable: !!adapter,
         }),
       );
     }
@@ -228,8 +235,11 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; mode: 
 
     // 幂等：同 requestId → 回放缓存，不重执行写操作
     return cache.run(requestId, async () => {
-      // --relay 模式：命令级转发到运行中 KaiBoard（经内建中继轮询回包），非 StorageAdapter 抽象。
-      if (opts.mode === "relay") {
+      // Plan A #376 路由：默认 relay（若已启动），显式 storage="dir" 且 adapter 可用则走离线写盘；
+      // 两者都不满足 → 明确报错，列出可用后端，便于 SKILL 侧决策。
+      const useRelay = relayStarted && args.storage !== "dir";
+      const useDir = !!adapter && (args.storage === "dir" || !relayStarted);
+      if (useRelay) {
         try {
           const r = await postCommandAndWait(relayUrl, relayToken!, buildRelayBody(cmd, requestId, agentCmd));
           if (r && r.ok) return envelope(kbProtocol, requestId, r);
@@ -238,9 +248,20 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; mode: 
           return errorEnvelope(kbProtocol, requestId, "RELAY_FAILED", String(e?.message || e));
         }
       }
-      const r = await executeCommand(adapter!, () => {}, agentCmd);
-      if (r.ok) return envelope(kbProtocol, requestId, r);
-      return errorEnvelope(kbProtocol, requestId, errorCodeFromCore(r.error), String(r.error || ""));
+      if (useDir) {
+        const r = await executeCommand(adapter!, () => {}, agentCmd);
+        if (r.ok) return envelope(kbProtocol, requestId, r);
+        return errorEnvelope(kbProtocol, requestId, errorCodeFromCore(r.error), String(r.error || ""));
+      }
+      const avail: string[] = [];
+      if (relayStarted) avail.push("relay");
+      if (adapter) avail.push("dir");
+      return errorEnvelope(
+        kbProtocol,
+        requestId,
+        "NO_BACKEND",
+        `no available backend for storage=${args.storage || "default"}; available=[${avail.join(",")}]`,
+      );
     });
   }
 
@@ -287,8 +308,8 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; mode: 
   }
 
   function start(): void {
-    // M2-3①：--dir 模式启动即探测并告警（stderr），便于发现配置不一致；--relay 模式跳过。
-    if (opts.mode === "dir") {
+    // M2-3①：传了 --dir 即探测并告警（stderr），便于发现配置不一致（relay 模式也照常，因 relay 文件夹即探测源）。
+    if (opts.rootDir) {
       relayProbe.then((folder) => {
         const w = computeDirWarnings(opts.rootDir!, folder);
         for (const m of w) process.stderr.write("[kaiboard-mcp] WARN: " + m + "\n");

@@ -54,6 +54,8 @@ export function listCapabilitiesResult(extra?: {
   relayFolder?: string | null;
   dirWarnings?: string[];
   storageMode?: "dir" | "relay";
+  relayAvailable?: boolean;
+  dirAvailable?: boolean;
 }) {
   return {
     kbProtocol: KB_PROTOCOL,
@@ -66,5 +68,8 @@ export function listCapabilitiesResult(extra?: {
     // M2-3①：Agent 侧配置一致性探测结果（relay /info.folder 与 --dir 比对）
     relayFolder: extra?.relayFolder ?? null,
     dirWarnings: extra?.dirWarnings ?? [],
+    // Plan A #376：声明当前已启用的后端能力，供 SKILL 侧按 storage 路由决策
+    relayAvailable: extra?.relayAvailable ?? false,
+    dirAvailable: extra?.dirAvailable ?? false,
   };
 }
