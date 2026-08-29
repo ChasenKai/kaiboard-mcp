@@ -2,7 +2,7 @@
   "name": "kaiboard-mcp",
   "version": "1.0.0",
   "private": true,
-  "description": "KaiBoard Model Context Protocol server workspace (local-dev only; publish/push happens at release). Contains @kaiboard/core (storage-agnostic Agent co-drawing command core) and, in M1-3, the MCP server.",
+  "description": "KaiBoard Model Context Protocol monorepo — @kaiboard/core (storage-agnostic Agent co-drawing command core) + @kaiboard/mcp-server (stdio JSON-RPC MCP server). Lets AI agents draw on local-first KaiBoard whiteboards.",
   "workspaces": [
     "packages/*"
   ],
