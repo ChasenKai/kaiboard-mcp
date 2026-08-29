@@ -17,10 +17,11 @@ async function appendElements(
   raw: any[],
   source: KbSource | string | undefined,
   onActivity: (msg: string) => void,
+  noOffset?: boolean,
 ): Promise<{ ok: true; added: number; ids: string[] }> {
   const cur = await adapter.readElements(target);
   const [norm, ids] = normalizeIncoming(raw, source);
-  offsetBelow(cur, norm);
+  if (!noOffset) offsetBelow(cur, norm);
   await adapter.writeElements(target, [...cur, ...norm]);
   if (norm.length) {
     onActivity(
@@ -94,7 +95,7 @@ export async function executeCommand(
       case "addElement": {
         const add = Array.isArray(d.elements) ? d.elements : d.elements ? [d.elements] : [];
         if (!add.length) return { ok: true, added: 0, ids: [] };
-        return await appendElements(adapter, target, add, d.source, onActivity);
+        return await appendElements(adapter, target, add, d.source, onActivity, d.opts?.noOffset);
       }
 
       /** N1：按 id 局部合并属性（不存在的 id 记入 missing）。 */
@@ -231,7 +232,7 @@ export async function executeCommand(
           onActivity(`Agent 共绘：Mermaid 已整板落图（${els.length} 个元素）`);
           return { ok: true, replaced: els.length };
         }
-        const r = await appendElements(adapter, target, converted, source, onActivity);
+        const r = await appendElements(adapter, target, converted, source, onActivity, d.opts?.noOffset);
         return { ...r, fromMermaid: true };
       }
 

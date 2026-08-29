@@ -85,6 +85,14 @@ export interface AgentCommand {
     /** fromMermaid：整板替换而非追加 */
     replace?: boolean;
     fontSize?: number;
+    /**
+     * addElement / fromMermaid：跳过「自动下移到已有内容下方」（#41）。
+     * 用途 = 同一张图内补/改元素时需要**精确落位**——否则新元素会被推到已有内容底边之下，
+     * 落到卡片框外面（实测补 1 条要点 → 跑到卡片右下角）。
+     * 默认 false，保持既有行为，完全向下兼容。
+     * **逐命令生效**：每次调用按当前意图单独决定（策略规则见 Skill #282）。
+     */
+    noOffset?: boolean;
   };
 }
 
