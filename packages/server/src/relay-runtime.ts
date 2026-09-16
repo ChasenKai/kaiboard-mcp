@@ -98,6 +98,10 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    // PNA（Chrome Private Network Access）：页面在公网 HTTPS 站点时访问 127.0.0.1 属「私有网络请求」，
+    // Chrome 会发带 Access-Control-Request-Private-Network 的预检；缺本头会被浏览器整体拦掉，
+    // 表现为「中继令牌自动获取失败」。本地 dev（页面也在 localhost）不触发，故此前未暴露。
+    res.setHeader("Access-Control-Allow-Private-Network", "true");
     if (req.method === "OPTIONS") {
       res.writeHead(204);
       res.end();
@@ -239,7 +243,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
     process.stderr.write(`[kaiboard-mcp] relay listening on http://127.0.0.1:${port}\n`);
     process.stderr.write(`[kaiboard-mcp] relay token: ${TOKEN}\n`);
     process.stderr.write(
-      `[kaiboard-mcp] 在 KaiBoard「Agent 共绘」设置里复制此令牌（或直接依赖 app 自动从 /info 发现）即完成授权。\n`,
+      `[kaiboard-mcp] 中继已就绪。保持 KaiBoard 页面在浏览器中打开、并已启用「Agent 共绘」，页面会自动通过 /info 校验令牌并完成连接。\n`,
     );
   });
 

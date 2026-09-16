@@ -89,7 +89,7 @@ kaiboard-mcp --dir <本地文件夹> --relay http://127.0.0.1:8787
 
 ```json
 "kaiboard-mcp": {
-  "command": "C:\\Users\\86158\\.workbuddy\\binaries\\node\\versions\\22.22.2\\node.exe",
+  "command": "C:\\Users\\86158\\.workbuddy\\binaries\\node\\versions\\22.22.2-3\\node.exe",
   "args": [
     "E:/WorkBuddyData/PProjectManagement/kaiboard/agent/mcp/packages/server/dist/cli.js",
     "--dir",
@@ -100,6 +100,32 @@ kaiboard-mcp --dir <本地文件夹> --relay http://127.0.0.1:8787
 ```
 
 > `--dir` 指向的文件夹首次写入时自动创建（`kaiboard-data/` 子树），无需手动建。
+> ⚠️ **`command` 里的 node 版本号随本机升级会变**（曾写死 `22.22.2`，该目录实际已不存在）；
+> 若报「找不到命令」，用 `dir C:\Users\86158\.workbuddy\binaries\node\versions` 查实际目录名再替换。
+> 另：MCP server 的模块解析走**导入文件所在位置**（会命中 `agent/mcp/node_modules` 的 workspace 软链），
+> 与 `cwd` 无关，故任意工作目录启动均可。
+
+### 接进 WorkBuddy（`--relay` 实时共绘变体）
+
+v1.1.0 主推的实时路径改用 `--relay` + 令牌（由 KaiBoard 页面「Agent 共绘」面板生成）：
+
+```json
+"kaiboard": {
+  "command": "C:\\Users\\86158\\.workbuddy\\binaries\\node\\versions\\22.22.2-3\\node.exe",
+  "args": [
+    "E:/WorkBuddyData/PProjectManagement/kaiboard/agent/mcp/packages/server/dist/cli.js",
+    "--relay"
+  ],
+  "env": {
+    "KAIBOARD_TOKEN": "<从 KaiBoard「Agent 共绘」面板「复制配置给 Agent」获取>"
+  },
+  "disabled": false
+}
+```
+
+> 中继监听 `127.0.0.1:8787`，须与 KaiBoard 页面**同一台机器**，且页面保持打开并已开启「Agent 共绘」。
+> **待 npm 发布后**（见 root `internal/RELEASE_PLAN.md` §3.5），可简化为
+> `command:"npx"` + `args:["-y","@kaiboard/mcp-server","--relay"]`，无需再指向本机 dist 路径。
 
 ### 在 WorkBuddy 里使用 `kbfs_*` 工具（示例）
 

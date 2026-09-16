@@ -4,7 +4,7 @@
 // 本文件逻辑完全复用，保证两端行为一致。
 
 import type { StorageAdapter, AgentCommand, KbSource, Snapshot, FileNode, BoardData } from "./types.js";
-import { normalizeIncoming, offsetBelow } from "./elements.js";
+import { normalizeIncoming, normalizeAliases, offsetBelow } from "./elements.js";
 import { pushSnapshot } from "./snapshot.js";
 import { mermaidToElements } from "./mermaid.js";
 
@@ -113,7 +113,14 @@ export async function executeCommand(
           const p = byId.get(e.id);
           if (!p) return e;
           patched++;
-          const merged: any = { ...e, ...p, id: e.id, versionNonce: Math.floor(Math.random() * 2 ** 31) };
+          // 与 addElement 走同一条别名映射：patch 里写 `fill` / `stroke` 也要落到
+          // Excalidraw 的 backgroundColor / strokeColor，否则改色只写进陌生字段、画布上颜色不变。
+          const merged: any = {
+            ...e,
+            ...normalizeAliases(p),
+            id: e.id,
+            versionNonce: Math.floor(Math.random() * 2 ** 31),
+          };
           if (p.customData || e.customData) {
             merged.customData = { ...(e.customData || {}), ...(p.customData || {}) };
           }
