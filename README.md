@@ -1,62 +1,67 @@
 # KaiBoard MCP Server
 
-**KaiBoard 的 MCP 服务端** —— 让支持 MCP 的 AI Agent 在你自己的白板上作画。
+**English** | [简体中文](./README.zh-CN.md) · [Protocol](./docs/PROTOCOL.md) · [Changelog](./CHANGELOG.md)
 
-本仓包含两个可独立使用的包：
+> Let MCP-capable AI agents draw on your own KaiBoard whiteboards.
 
-| 包 | 作用 |
+KaiBoard is a free, open-source, **local-first** whiteboard: your boards live on your own device, never in the cloud.
+This repo is the bridge that lets an agent read and edit those boards — the agent runs wherever your MCP client runs, and **the canvas stays on your machine**.
+
+It contains two independently usable packages:
+
+| Package | Role |
 |---|---|
-| [`@kaibuddy/kaiboard-mcp`](packages/server) | MCP 服务端（stdio JSON-RPC 2.0），暴露 `kbfs_*` 工具 |
-| [`@kaibuddy/kaiboard-core`](packages/core) | 与存储无关的指令核心（命令执行、元素处理、快照、Mermaid 转换） |
-
-> 配套客户端是开源白板应用 **KaiBoard**（本地优先、无账号、无后端）。
+| [`@kaibuddy/kaiboard-mcp`](https://www.npmjs.com/package/@kaibuddy/kaiboard-mcp) | MCP server (stdio JSON-RPC 2.0) exposing the `kbfs_*` tools |
+| [`@kaibuddy/kaiboard-core`](https://www.npmjs.com/package/@kaibuddy/kaiboard-core) | Storage-agnostic command core (executor, element model, snapshots, Mermaid conversion) |
 
 ---
 
-## 它能做什么
+## What it does
 
-`@kaibuddy/kaiboard-mcp` 是**单一包**，通过同一组 `kbfs_*` 工具提供两种**可叠加**（非互斥）的工作方式：
+`@kaibuddy/kaiboard-mcp` is a **single package** that serves two **combinable** modes through the same set of `kbfs_*` tools:
 
-| | `--relay` 模式（主推） | `--dir` 模式 |
+| | `--relay` mode (recommended) | `--dir` mode |
 |---|---|---|
-| 后端 | 正在运行中的 KaiBoard 页面 | 你指定的本地文件夹 |
-| 需要应用开着？ | 需要（且在应用内启用「Agent 共绘」） | 不需要 |
-| 典型用途 | Agent 直接操作用户当前画板，改动即时可见 | Agent 自有的本地工作区 |
-| 数据落点 | 用户自己的 KaiBoard 库 | `<文件夹>/kaiboard-data/` |
+| Backend | A running KaiBoard page | A local folder you choose |
+| App must be open? | Yes (with "Agent co-draw" enabled in the app) | No |
+| Typical use | The agent works on the user's live board, changes visible immediately | A workspace the agent owns offline |
+| Data location | The user's own KaiBoard library | `<folder>/kaiboard-data/` |
 
-两者可同时启用：
+Both can be enabled at once:
 
 ```bash
 kaiboard-mcp --relay --dir /path/to/workspace
 ```
 
-## 安装
+## Install
 
 ```bash
 npm install -g @kaibuddy/kaiboard-mcp
-# 或免安装直接运行
-npx -y @kaibuddy/kaiboard-mcp --help
+# or run without installing
+npx -y @kaibuddy/kaiboard-mcp
 ```
 
-## 接进你的 MCP 客户端
+Requires Node.js **>= 18**.
 
-**推荐：`--relay` 模式**（驱动你正在看的画板，改动即时可见）。
-需要带上中继令牌 —— 在 KaiBoard 的「Agent 共绘」面板里取得：
+## Connect your MCP client
+
+**Recommended: `--relay` mode** — drives the board you're looking at, with changes visible immediately.
+It needs a relay token, obtained from KaiBoard's **"Agent co-draw"** panel:
 
 ```json
 {
   "kaiboard": {
     "command": "npx",
     "args": ["-y", "@kaibuddy/kaiboard-mcp", "--relay"],
-    "env": { "KAIBOARD_TOKEN": "<your-relay-token>" }
+    "env": { "KAIBOARD_TOKEN": "<your-token>" }
   }
 }
 ```
 
-> `--relay` 会在本机 `127.0.0.1:8787` 起一个中继，与 KaiBoard 页面通信。
-> 因此中继与页面必须在**同一台机器**上，且操作期间页面保持打开。
+> `--relay` starts a **built-in local relay** on `127.0.0.1:8787` that talks to the KaiBoard page.
+> The relay and the page must therefore be on the **same machine**, and the page has to stay **open** while the agent works.
 
-也可以只用 `--dir` 模式（不依赖应用，Agent 在本地文件夹里独立工作）：
+`--dir` mode can also be used on its own (no app required — the agent works in a local folder):
 
 ```json
 {
@@ -67,34 +72,34 @@ npx -y @kaibuddy/kaiboard-mcp --help
 }
 ```
 
-两者可叠加：`"args": ["-y", "@kaibuddy/kaiboard-mcp", "--relay", "--dir", "/path/to/your/workspace"]`
+Or combine them: `"args": ["-y", "@kaibuddy/kaiboard-mcp", "--relay", "--dir", "/path/to/your/workspace"]`
 
-改完配置后需要**重启你的 MCP 客户端**，让它重新加载。
+**Restart your MCP client** after changing the config so it picks up the new server.
 
-## 工具清单
+## Tools
 
-`tools/list` 返回 **12 个工具**（11 个命令 + 1 个能力声明）：
+`tools/list` returns **12 tools** (11 commands + 1 capability declaration):
 
-| 工具 | 用途 |
+| Tool | Purpose |
 |---|---|
-| `kbfs_list_capabilities` | 查询当前运行时的能力（可用命令、存储模式、页面是否已连接） |
-| `kbfs_list_boards` | 列出画板与文件夹 |
-| `kbfs_get_board` | 读取画板元素 |
-| `kbfs_get_screenshot` | 把画板渲染成 PNG 交回 Agent 自查（`--relay` 可用；`--dir` 优雅降级） |
-| `kbfs_add_element` | 追加图元 |
-| `kbfs_patch_element` | 按 id 局部修改属性 |
-| `kbfs_delete_element` | 按 id 删除图元 |
-| `kbfs_replace_board` | 整板替换（自动快照） |
-| `kbfs_create_board` | 新建画板 |
-| `kbfs_delete_board` | 删除画板（软删除，可在应用内还原） |
-| `kbfs_from_mermaid` | Mermaid 源码转成原生可编辑图元 |
-| `kbfs_set_metadata` | 写画板级元数据（状态 / 版本 / 历史 / 批注） |
+| `kbfs_list_capabilities` | Discover runtime capabilities (commands, storage modes, whether the page is connected) |
+| `kbfs_list_boards` | List boards and folders |
+| `kbfs_get_board` | Read a board's elements |
+| `kbfs_get_screenshot` | Render a board to PNG so the agent can look at it (`--relay`; degrades gracefully under `--dir`) |
+| `kbfs_add_element` | Add elements |
+| `kbfs_patch_element` | Patch element properties by id |
+| `kbfs_delete_element` | Delete elements by id |
+| `kbfs_replace_board` | Replace a board's contents (auto-snapshot) |
+| `kbfs_create_board` | Create a board |
+| `kbfs_delete_board` | Delete a board (soft delete, restorable in the app) |
+| `kbfs_from_mermaid` | Build native editable elements from a Mermaid diagram |
+| `kbfs_set_metadata` | Write board metadata (status / version / history / comments) |
 
-命令行细节、信封格式、错误码见 **[`docs/PROTOCOL.md`](docs/PROTOCOL.md)**。
+CLI details, envelope format and error codes: see **[`docs/PROTOCOL.md`](./docs/PROTOCOL.md)**.
 
-## 元素与填充色
+## Elements and fill colors
 
-图元使用 Excalidraw 元素格式。填充色可写短名 `fill`（等价于 `backgroundColor`），描边可写 `stroke`（等价于 `strokeColor`）：
+Elements use the Excalidraw element format. `fill` is accepted as a shorthand for `backgroundColor`, and `stroke` for `strokeColor`:
 
 ```json
 {
@@ -106,28 +111,39 @@ npx -y @kaibuddy/kaiboard-mcp --help
 }
 ```
 
-## 数据与隐私
+## Data and privacy
 
-- **画板数据不会上传到任何服务器。** `--relay` 模式的中继只监听 `127.0.0.1`，仅用于同机通信；`--dir` 模式直接读写你指定的本地文件夹。
-- 无需账号，无需登录。
-- 落盘布局（`--dir` 模式）：`kaiboard-data/boards/<id>.json` + `kaiboard-data/tree.json`，该格式可直接被 KaiBoard 打开。
+- **Board data is never uploaded to any server.** In `--relay` mode the relay listens on `127.0.0.1` only, for same-machine communication; in `--dir` mode the server reads and writes the local folder you specify.
+- No account, no sign-in.
+- On-disk layout (`--dir` mode): `kaiboard-data/boards/<id>.json` plus `kaiboard-data/tree.json` — a format KaiBoard can open directly.
 
-## 开发
+## Development
 
 ```bash
 npm install
-npm run typecheck   # 类型检查
-npm run build       # 构建两个包到各自 dist/
-npm run e2e         # 端到端（核心 + 文件后端 / 真实 stdio server）
-npm run smoke       # 真实 MCP 客户端冒烟（initialize → tools/call）
+npm run typecheck   # type check
+npm run build       # build both packages into their dist/
+npm run e2e         # end-to-end (core + fs adapter / real stdio server)
+npm run smoke       # real MCP client smoke test (initialize -> tools/call)
 ```
 
-## 依赖说明
+## Third-party notices
 
-- `@kaibuddy/kaiboard-core` **无运行时硬依赖**：存储、画布、截图渲染都通过 `StorageAdapter` 注入，core 本身不绑定任何后端。
-- `@excalidraw/excalidraw`、`@excalidraw/mermaid-to-excalidraw` 为 **可选 peerDependencies**，由宿主（应用或服务端）在运行时提供；`fromMermaid` 与 `getScreenshot` 在缺少它们的运行时会明确返回不支持，而非静默失败。
-- 第三方组件与许可见 [`NOTICE`](NOTICE) / [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md)。
+Third-party components are referenced as **optional** peer dependencies (the license text ships inside each package):
+
+| Component | License | Role |
+|---|---|---|
+| `@excalidraw/excalidraw` | MIT | element types / canvas rendering (provided by the host) |
+| `@excalidraw/mermaid-to-excalidraw` | MIT | Mermaid → element conversion (optional) |
+
+Build-time only: `typescript` (Apache-2.0), `@types/node` (MIT).
+
+No upstream source code is vendored — every component is used as an ordinary npm dependency.
+
+## Versioning
+
+Currently `0.1.x` — the API may still change between minor versions. `1.0.0` will mark the stability commitment.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](./LICENSE)
