@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ChasenKai/kaiboard-mcp",
+  "title": "KaiBoard MCP",
+  "description": "Let AI agents draw on your local-first KaiBoard whiteboards (live board via relay, or a local folder).",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/ChasenKai/kaiboard-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@kaibuddy/kaiboard-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "KAIBOARD_TOKEN",
+          "description": "Relay token from KaiBoard's \"Agent co-draw\" panel. Required for --relay mode; not needed for --dir mode.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
