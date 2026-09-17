@@ -44,7 +44,7 @@ function toolName(cmd: string): string {
 const TOOLS = [
   ...COMMANDS.map((cmd) => ({
     name: toolName(cmd),
-    description: `KaiBoard 共绘命令 ${cmd}（见 docs/PROTOCOL.md）。参数见各命令节。`,
+    description: `KaiBoard co-draw command: ${cmd}. Parameters: see docs/PROTOCOL.md. / KaiBoard 共绘命令 ${cmd}，参数见 docs/PROTOCOL.md。`,
     inputSchema: {
       type: "object",
       properties: {
@@ -61,14 +61,14 @@ const TOOLS = [
         source: { type: "object" },
         opts: { type: "object" },
         metadata: { type: "object" },
-        storage: { type: "string", enum: ["relay", "dir"], description: "可选：强制后端。默认 relay（若已启用）；dir=离线写盘（需 --dir 启动）。" },
+        storage: { type: "string", enum: ["relay", "dir"], description: "Force the backend. Default: relay when enabled; dir = offline folder (requires --dir). / 强制后端：默认 relay（若已启用），dir=离线写盘（需 --dir 启动）。" },
       },
       required: [],
     },
   })),
   {
     name: "kbfs_list_capabilities",
-    description: "KaiBoard 能力声明（一等命令）：可用命令白名单 / 存储模式 / 快照上限 / 服务端信息",
+    description: "KaiBoard capability declaration: available commands / storage modes / snapshot limit / server info. / KaiBoard 能力声明：可用命令白名单 / 存储模式 / 快照上限 / 服务端信息",
     inputSchema: {
       type: "object",
       properties: { kbProtocol: { type: "string" }, requestId: { type: "string" } },
@@ -131,7 +131,10 @@ function computeDirWarnings(rootDir: string, relayFolder: string | null | undefi
   const warnings: string[] = [];
   if (relayFolder && basename(rootDir) !== relayFolder) {
     warnings.push(
-      `Agent 工作目录(--dir=${rootDir}) 与 KaiBoard 当前文件夹(${relayFolder}) 不一致：` +
+      `Agent working folder (--dir=${rootDir}) differs from the folder KaiBoard currently has open (${relayFolder}). ` +
+        `Agent-written content will not be visible until the user imports it in KaiBoard. ` +
+        `Point --dir at KaiBoard's current folder, or set KaiBoard's storage folder to the same directory. ` +
+        `／Agent 工作目录(--dir=${rootDir}) 与 KaiBoard 当前文件夹(${relayFolder}) 不一致：` +
         `Agent 写入的内容需用户在 KaiBoard 中显式导入才可见；` +
         `建议把 --dir 指向 KaiBoard 当前文件夹，或在 KaiBoard 设置里将存储文件夹设为同一目录。`,
     );

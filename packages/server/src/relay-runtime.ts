@@ -243,7 +243,8 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
     process.stderr.write(`[kaiboard-mcp] relay listening on http://127.0.0.1:${port}\n`);
     process.stderr.write(`[kaiboard-mcp] relay token: ${TOKEN}\n`);
     process.stderr.write(
-      `[kaiboard-mcp] 中继已就绪。保持 KaiBoard 页面在浏览器中打开、并已启用「Agent 共绘」，页面会自动通过 /info 校验令牌并完成连接。\n`,
+      `[kaiboard-mcp] relay ready. Keep the KaiBoard page open with "Agent co-draw" enabled; the page verifies the token via /info and connects automatically.\n` +
+        `[kaiboard-mcp] 中继已就绪。保持 KaiBoard 页面在浏览器中打开、并已启用「Agent 共绘」，页面会自动通过 /info 校验令牌并完成连接。\n`,
     );
   });
 

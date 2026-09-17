@@ -30,13 +30,17 @@ const { dir, relayUrl, relay } = parseArgs(process.argv.slice(2));
 if (!relay && !dir) {
   process.stderr.write(
     "usage:\n" +
-      "  kaiboard-mcp --relay [--dir <文件夹>] [--relay-url URL]   # 共绘（默认 http://127.0.0.1:8787），--dir 可叠加\n" +
-      "  kaiboard-mcp --dir <文件夹>                              # 仅离线模式\n",
+      "  kaiboard-mcp --relay [--dir <folder>] [--relay-url URL]\n" +
+      "      Drive a running KaiBoard page (relay defaults to http://127.0.0.1:8787); --dir may be combined.\n" +
+      "      驱动运行中的 KaiBoard 页面（中继默认 http://127.0.0.1:8787）；可叠加 --dir。\n" +
+      "  kaiboard-mcp --dir <folder>\n" +
+      "      Work offline against a local folder.\n" +
+      "      仅离线模式，绑定本地文件夹。\n",
   );
   process.exit(2);
 }
 if (dir && !dir.trim()) {
-  process.stderr.write("usage: --dir 需要一个文件夹路径\n");
+  process.stderr.write("usage: --dir requires a folder path ／ --dir 需要一个文件夹路径\n");
   process.exit(2);
 }
 

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-17
+
+### Changed
+
+- **Bilingual user-facing strings.** CLI usage, MCP tool descriptions, and the `--dir` / relay notices now render in **English + Chinese** (previously Chinese only), matching the English README and protocol document. Tool descriptions are read by agents through `tools/list`.
+
 ## [0.1.0] - 2026-09-17
 
 First public release. `0.x` means the API may still change between minor versions;
@@ -24,5 +30,6 @@ First public release. `0.x` means the API may still change between minor version
 - Element shorthand aliases so `fill` / `stroke` work as `backgroundColor` / `strokeColor`.
 - Explicit degradation instead of failure when a capability is unavailable in the current runtime (`kbfs_get_screenshot`, `kbfs_from_mermaid`, `kbfs_set_metadata` under `--dir`).
 
-[Unreleased]: https://github.com/ChasenKai/kaiboard-mcp/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/ChasenKai/kaiboard-mcp/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/ChasenKai/kaiboard-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ChasenKai/kaiboard-mcp/releases/tag/v0.1.0
