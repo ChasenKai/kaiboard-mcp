@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // KaiBoard MCP server —— CLI 入口（统一包：--relay 共绘为主，--dir 离线可叠加）
-// 设计原则（Plan A #378）：MCP 配置固定，不随使用场景切换。
+// 设计原则：MCP 配置固定，不随使用场景切换。
 //   kaiboard-mcp --relay [--dir <文件夹>] [--relay-url URL]   # 共绘（默认 http://127.0.0.1:8787），--dir 可叠加为可选离线能力
 //   kaiboard-mcp --dir <文件夹>                              # 仅离线（兼容旧用法）
 import { createServer } from "./server.js";

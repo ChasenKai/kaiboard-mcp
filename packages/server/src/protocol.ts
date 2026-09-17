@@ -57,25 +57,24 @@ export function listCapabilitiesResult(extra?: {
   storageMode?: "dir" | "relay";
   relayAvailable?: boolean;
   dirAvailable?: boolean;
-  /** M2-4：KaiBoard 页面是否已连接到中继（= 用户是否正开着画板）。 */
+  /** KaiBoard 页面是否已连接到中继（= 用户是否正开着画板）。 */
   pageConnected?: boolean;
 }) {
   return {
     kbProtocol: KB_PROTOCOL,
     commands: COMMANDS,
-    widget: { supported: false, reason: "M2.5 未实现宿主，协议形态已预留" },
     storageModes: ["idb", "fs", "dir", "relay"],
     activeStorageMode: extra?.storageMode ?? "dir",
     snapshot: { max: 20 },
     serverInfo: { name: SERVER_NAME, version: SERVER_VERSION },
-    // M2-3①：Agent 侧配置一致性探测结果（relay /info.folder 与 --dir 比对）
+    // Agent 侧配置一致性探测结果（relay /info.folder 与 --dir 比对）
     relayFolder: extra?.relayFolder ?? null,
     dirWarnings: extra?.dirWarnings ?? [],
-    // Plan A #376：声明当前已启用的后端能力，供 SKILL 侧按 storage 路由决策
+    // 声明当前已启用的后端能力，供 Agent 侧按 storage 路由决策
     relayAvailable: extra?.relayAvailable ?? false,
     dirAvailable: extra?.dirAvailable ?? false,
-    // M2-4：页面是否已连上中继。relayAvailable 只代表中继进程在跑，pageConnected 才代表
-    // 用户真的开着画板——SKILL 侧降级规则应优先看这个字段。
+    // relayAvailable 只代表中继进程在跑；pageConnected 才代表用户真的开着画板。
+    // Agent 侧降级规则应优先看这个字段。
     pageConnected: extra?.pageConnected ?? false,
   };
 }

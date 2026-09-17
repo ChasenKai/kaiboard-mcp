@@ -37,7 +37,7 @@ export function normalizeAliases(el: any): any {
   return out;
 }
 
-/** 规范化传入元素：别名映射 + 补稳定 id + C4 源随图走。返回 [元素数组, id 数组]。 */
+/** 规范化传入元素：别名映射 + 补稳定 id + 源随图走。返回 [元素数组, id 数组]。 */
 export function normalizeIncoming(add: any[], source?: KbSource | string): [any[], string[]] {
   const src: KbSource | undefined =
     typeof source === "string" ? { kind: "text", text: source } : source || undefined;
@@ -55,7 +55,7 @@ export function normalizeIncoming(add: any[], source?: KbSource | string): [any[
   return [norm, ids];
 }
 
-/** #41 防重叠：非空画板时把新元素整体下移到现有内容下方。 */
+/** 防重叠：非空画板时把新元素整体下移到现有内容下方。 */
 export function offsetBelow(existing: readonly any[], incoming: any[]): void {
   if (!existing.length || !incoming.length) return;
   const bottom = existing.reduce((m: number, e: any) => {

@@ -1,5 +1,5 @@
 // @kaiboard/mcp-server —— 统一 MCP 服务端（stdio JSON-RPC 2.0）
-// 双能力（Plan A #376，非互斥）：--relay（内建拥有本地中继，命令级转发到运行中 KaiBoard）可独立启用；
+// 双能力（非互斥）：--relay（内建拥有本地中继，命令级转发到运行中 KaiBoard）可独立启用；
 //   --dir（离线 FsStorageAdapter）为可叠加可选能力。两者可同时持有，命令按 args.storage 路由（默认 relay）。
 // 工具名统一 kbfs_*（10 命令 + listCapabilities）。协议：kbProtocol 协商 / requestId 幂等 / 标准错误码。
 // 所有 --dir 命令经 @kaiboard/core 的 executeCommand 执行；--relay 命令经 relay 转发到 app 端同款执行器。
@@ -95,7 +95,7 @@ async function probeRelayFolder(relayUrl: string): Promise<string | null> {
 }
 
 /**
- * M2-4 连接探测：查中继「KaiBoard 页面是否已连接」= 用户是否正开着画板。
+ * 连接探测：查中继「KaiBoard 页面是否已连接」= 用户是否正开着画板。
  * 相比用 listBoards 试错（无连接时要等 20s 才超时），这里是 1.5s 内返回的快查。
  * 返回 null = 探测失败（中继未起 / 超时），调用方按 false 处理。
  */
@@ -123,7 +123,7 @@ async function probeRelayConnection(
 }
 
 /**
- * M2-3① 配置一致性探测：--dir 末段（basename）应与 KaiBoard 当前文件夹一致。
+ * 配置一致性探测：--dir 末段（basename）应与 KaiBoard 当前文件夹一致。
  * 不一致 → Agent 写入的内容用户需显式导入才可见，给出明确行动指引（降级显式落板）。
  * 注：浏览器 FileSystemDirectoryHandle 不暴露真实路径，/info 只能给文件夹名，故比 basename。
  */
@@ -208,7 +208,7 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; relay:
     relayToken = relay.token;
     relayStarted = true;
   }
-  const relayProbe = probeRelayFolder(relayUrl); // 异步探测 KaiBoard 当前文件夹（M2-3①，仅 --dir 一致性告警用）
+  const relayProbe = probeRelayFolder(relayUrl); // 异步探测 KaiBoard 当前文件夹（仅 --dir 一致性告警用）
   let buf = "";
   let pending = 0;
   let stdinClosed = false;
@@ -226,7 +226,7 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; relay:
     if (name === "kbfs_list_capabilities") {
       const folder = relayStarted ? await relayProbe : null;
       const warnings = opts.rootDir ? computeDirWarnings(opts.rootDir, folder) : [];
-      // M2-4：页面是否真连上（relayAvailable 只代表中继进程在跑）
+      // 页面是否真连上（relayAvailable 只代表中继进程在跑）
       const pageConnected = relayStarted
         ? ((await probeRelayConnection(relayUrl, relayToken)) ?? false)
         : false;
@@ -268,7 +268,7 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; relay:
 
     // 幂等：同 requestId → 回放缓存，不重执行写操作
     return cache.run(requestId, async () => {
-      // Plan A #376 路由：默认 relay（若已启动），显式 storage="dir" 且 adapter 可用则走离线写盘；
+      // 路由：默认 relay（若已启动），显式 storage="dir" 且 adapter 可用则走离线写盘；
       // 两者都不满足 → 明确报错，列出可用后端，便于 SKILL 侧决策。
       const useRelay = relayStarted && args.storage !== "dir";
       const useDir = !!adapter && (args.storage === "dir" || !relayStarted);
@@ -341,7 +341,7 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; relay:
   }
 
   function start(): void {
-    // M2-3①：传了 --dir 即探测并告警（stderr），便于发现配置不一致（relay 模式也照常，因 relay 文件夹即探测源）。
+    // 传了 --dir 即探测并告警（stderr），便于发现配置不一致（relay 模式也照常，因 relay 文件夹即探测源）。
     if (opts.rootDir) {
       relayProbe.then((folder) => {
         const w = computeDirWarnings(opts.rootDir!, folder);

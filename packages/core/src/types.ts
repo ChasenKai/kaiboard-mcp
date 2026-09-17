@@ -15,14 +15,14 @@ export interface FileNode {
   order?: number;
   /** 软删除时间戳；空 = 未删除（在回收站中可还原） */
   deletedAt?: number | null;
-  /** M2-2 画板级元数据 */
+  /** 画板级元数据 */
   status?: string; // 如 draft / review / done
   version?: number; // 自增版本号
   history?: Array<{ ts: number; version: number; note?: string }>; // 版本历史
   comments?: any[]; // 批注 / 回环评论
 }
 
-/** M2-2 画板级元数据包（setMetadata 命令 / StorageAdapter 元数据方法的统一契约）。 */
+/** 画板级元数据包（setMetadata 命令 / StorageAdapter 元数据方法的统一契约）。 */
 export interface KbMeta {
   status?: string; // 如 draft / review / done
   version?: number; // 自增版本号
@@ -50,7 +50,7 @@ export type AgentCmd =
   | "fromMermaid"
   | "setMetadata";
 
-/** C4 源随图走：随图携带的「生成来源」。 */
+/** 源随图走：随图携带的「生成来源」。 */
 export interface KbSource {
   kind?: string;
   text?: string;
@@ -60,7 +60,7 @@ export interface KbSource {
 /** Core 指令体（传输层负责校验 type/token 后传入）。 */
 export interface AgentCommand {
   cmd: AgentCmd;
-  /** N3 寻址：目标画板 id；缺省 = 当前打开画板 */
+  /** 寻址：目标画板 id；缺省 = 当前打开画板 */
   boardId?: string;
   /** addElement / replaceBoard：元素（数组或单个） */
   elements?: any[] | any;
@@ -73,9 +73,9 @@ export interface AgentCommand {
   parentId?: string | null;
   /** fromMermaid：mermaid 源码 */
   mermaid?: string;
-  /** M2-2 setMetadata：画板级元数据包 */
+  /** setMetadata：画板级元数据包 */
   metadata?: KbMeta;
-  /** C4 源随图走 */
+  /** 源随图走 */
   source?: KbSource | string;
   /** getScreenshot / fromMermaid 选项 */
   opts?: {
@@ -90,7 +90,7 @@ export interface AgentCommand {
      * 用途 = 同一张图内补/改元素时需要**精确落位**——否则新元素会被推到已有内容底边之下，
      * 落到卡片框外面（实测补 1 条要点 → 跑到卡片右下角）。
      * 默认 false，保持既有行为，完全向下兼容。
-     * **逐命令生效**：每次调用按当前意图单独决定（策略规则见 Skill #282）。
+     * **逐命令生效**：每次调用按当前意图单独决定（策略规则见 Skill ）。
      */
     noOffset?: boolean;
   };
@@ -132,7 +132,7 @@ export interface StorageAdapter {
   setSetting(key: string, value: any): Promise<void>;
   /** 截图渲染（可选）：app 注入 exportToBlob+FileReader；MCP --dir 不注入 → 标记不支持 */
   renderPng?(elements: any[], files: any, appState: any, opts: any): Promise<{ dataUrl: string; bytes: number }>;
-  /** M2-2 画板级元数据（可选）：仅 --dir fs 模式实现；relay/bridge 模式不实现 → setMetadata 命令返回 unsupported */
+  /** 画板级元数据（可选）：仅 --dir fs 模式实现；relay/bridge 模式不实现 → setMetadata 命令返回 unsupported */
   getMetadata?(boardId: string): Promise<KbMeta | null>;
   setMetadata?(boardId: string, partial: KbMeta): Promise<boolean>;
 }

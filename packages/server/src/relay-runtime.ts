@@ -68,7 +68,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
   const cmdWaiters: CmdWaiter[] = [];
   const respWaiters: Array<(c: any) => void> = [];
   let lastFolder: string | null = null;
-  // M2-4 连接探测：KaiBoard 页面（agentRelayClient）长轮询 GET /cmd 时刷新。
+  // 连接探测：KaiBoard 页面（agentRelayClient）长轮询 GET /cmd 时刷新。
   // 用途：让 Agent 快查「用户是否正开着画板」，不必等 /resp 的 20s 超时才判断。
   let lastClientSeenAt: number | null = null;
   /** 判定页面在线的时间窗（ms）：覆盖一次 20s 长轮询周期 + 重连间隔。 */
@@ -124,7 +124,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
       res.end("forbidden");
       return;
     }
-    // M2-4：GET /state = 查询「页面是否已连接」（Agent 侧快查用，需 token）。
+    // GET /state = 查询「页面是否已连接」（Agent 侧快查用，需 token）。
     // 注：POST /state 语义不同（页面向中继上报当前文件夹），两者并存不冲突。
     if (req.method === "GET" && url.pathname === "/state") {
       const now = Date.now();
@@ -152,7 +152,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
         let idx = want ? cmdWaiters.findIndex((x) => x.board === want) : -1;
         if (idx < 0) idx = 0;
         const w = cmdWaiters.length ? cmdWaiters.splice(idx, 1)[0] : undefined;
-        // #178 根治：命令已被挂起的 waiter 取走时必须清空 pendingCmd。
+        // 根治：命令已被挂起的 waiter 取走时必须清空 pendingCmd。
         // 否则页面下一次 GET /cmd 会再次拿到同一条指令 → 被执行两次
         // （表现：addElement 产生重复 id 元素，历史上只能用 replaceBoard 幂等规避）。
         if (w) {
@@ -188,7 +188,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
       };
       cmdWaiters.push(w);
       // 客户端断开（页面关闭/刷新）时立即清理 waiter，避免残留导致
-      // M2-4 连接在页面已关闭后仍被误判为在线（原逻辑只在 20s 超时才清理）。
+      // 连接在页面已关闭后仍被误判为在线（原逻辑只在 20s 超时才清理）。
       req.on("close", () => {
         clearTimeout(t);
         const i = cmdWaiters.indexOf(w);
@@ -200,7 +200,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
       readBody(req, (b) => {
         pendingResp = b;
         const w = respWaiters.shift();
-        // 同 #178：响应已被 Agent 长轮询取走时必须清空 pendingResp，
+        // 同 ：响应已被 Agent 长轮询取走时必须清空 pendingResp，
         // 否则下一次 GET /resp 会重复消费同一条响应（Agent 拿到上一笔的结果）。
         if (w) {
           pendingResp = null;

@@ -1,6 +1,24 @@
-# 本地开发工作区忽略项（与是否推送 GitHub 无关，纯本地构建产物）
+# 依赖与构建产物
 node_modules/
 dist/
+*.tsbuildinfo
+
+# 环境与密钥（绝不入库）
+.env
+.env.*
+!.env.example
+
+# 私有工作区（双保险：即使本目录将来出现 internal/，也不会被提交）
+internal/
+
+# 日志与缓存
 *.log
-.DS_Store
 .cache/
+.tmp/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -163,7 +163,7 @@ export function createFsStorageAdapter(rootDir: string): StorageAdapter {
 
     // renderPng 不注入（--dir headless 无 canvas）→ getScreenshot 返回 unsupported（R1）
 
-    // M2-2 画板级元数据：直接读写 tree.json 中 FileNode 的元数据字段
+    // 画板级元数据：直接读写 tree.json 中 FileNode 的元数据字段
     async getMetadata(boardId) {
       const node = (await readTree()).find((n) => n.id === boardId && !n.deletedAt);
       if (!node) return null;

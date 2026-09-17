@@ -54,7 +54,7 @@ export async function executeCommand(
         return { ok: true, boardId: target || adapter.currentBoardId || null, elements: els };
       }
 
-      /** P0.5 视觉读：把目标画板渲成 PNG（base64 data URL）交回 Agent 自查。 */
+      /** 视觉读：把目标画板渲成 PNG（base64 data URL）交回 Agent 自查。 */
       case "getScreenshot": {
         const meta = await adapter.readMeta(target);
         if (!meta.elements.length) {
@@ -78,7 +78,7 @@ export async function executeCommand(
         };
       }
 
-      /** N2：返回文件树（文件夹 + 画板），供 Agent 寻址。 */
+      /** 返回文件树（文件夹 + 画板），供 Agent 寻址。 */
       case "listBoards": {
         const nodes: FileNode[] = await adapter.listBoards();
         const slim = nodes.map((n) => ({
@@ -98,7 +98,7 @@ export async function executeCommand(
         return await appendElements(adapter, target, add, d.source, onActivity, d.opts?.noOffset);
       }
 
-      /** N1：按 id 局部合并属性（不存在的 id 记入 missing）。 */
+      /** 按 id 局部合并属性（不存在的 id 记入 missing）。 */
       case "patchElement": {
         const raw = Array.isArray(d.patches) ? d.patches : d.patches ? [d.patches] : [];
         if (!raw.length) return { ok: true, patched: 0, missing: [] };
@@ -133,7 +133,7 @@ export async function executeCommand(
         return { ok: true, patched, missing };
       }
 
-      /** N4：按 id 删除元素。 */
+      /** 按 id 删除元素。 */
       case "deleteElement": {
         const ids = Array.isArray(d.ids) ? d.ids : d.ids ? [d.ids] : [];
         if (!ids.length) return { ok: true, deleted: 0, missing: [] };
@@ -159,7 +159,7 @@ export async function executeCommand(
         return { ok: true, replaced: els.length };
       }
 
-      /** A1：新建空画板（直写存储，不切画布），返回 boardId。 */
+      /** 新建空画板（直写存储，不切画布），返回 boardId。 */
       case "createBoard": {
         const now = Date.now();
         const id = crypto.randomUUID();
@@ -209,7 +209,7 @@ export async function executeCommand(
         return { ok: false, error: "unsupported: current storage backend cannot delete boards" };
       }
 
-      /** C5 / P1：Mermaid → 原生可编辑 Excalidraw 图元。 */
+      /**  / P1：Mermaid → 原生可编辑 Excalidraw 图元。 */
       case "fromMermaid": {
         const src = (d.mermaid || "").trim();
         if (!src) return { ok: false, error: "empty mermaid" };
@@ -229,7 +229,7 @@ export async function executeCommand(
           }
           return { ok: false, error: "mermaid parse failed: " + msg };
         }
-        // C4：mermaid 源码天然就是「源随图走」的最佳载体
+        // mermaid 源码天然就是「源随图走」的最佳载体
         const source: KbSource = { kind: "mermaid", text: src, ...(typeof d.source === "object" ? d.source : {}) };
         if (d.opts?.replace) {
           const before = await adapter.readElements(target);
@@ -243,7 +243,7 @@ export async function executeCommand(
         return { ...r, fromMermaid: true };
       }
 
-      /** M2-2：设置画板级元数据（status/version/history/comments）。仅 --dir fs 模式支持。 */
+      /** ：设置画板级元数据（status/version/history/comments）。仅 --dir fs 模式支持。 */
       case "setMetadata": {
         const id = target || adapter.currentBoardId;
         if (!id) return { ok: false, error: "setMetadata requires boardId (no current board in this runtime)" };

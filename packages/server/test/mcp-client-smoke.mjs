@@ -1,4 +1,4 @@
-// @kaiboard/mcp-server —— M1-3 真实 MCP 客户端冒烟（不依赖官方 SDK）
+// @kaiboard/mcp-server —— 真实 MCP 客户端冒烟（不依赖官方 SDK）
 //
 // 为什么不用 @modelcontextprotocol/sdk：本沙箱 safe-delete 钩子会阻断 npm 缓存临时文件清理，
 // SDK 安装被 EPERM 中断且提取残缺。改为手写一个「协议忠实」的最小 MCP 客户端：
@@ -93,7 +93,7 @@ class McpClient {
 }
 
 async function main() {
-  console.log("=== KaiBoard-MCP 真实 MCP 客户端冒烟 ===");
+  console.log("=== kaiboard-mcp 真实 MCP 客户端冒烟 ===");
   const root = await mkdtemp(join(tmpdir(), "kb-smoke-"));
   const client = new McpClient(["--dir", root]);
   try {
@@ -103,14 +103,14 @@ async function main() {
 
     const tl = await client.send("tools/list", {});
     const names = tl?.result?.tools?.map((t) => t.name) || [];
-    check("tools/list=11（10命令+listCapabilities）", names.length === 11, JSON.stringify(names.length));
+    check("tools/list=12（11命令+listCapabilities）", names.length === 12, JSON.stringify(names.length));
     check("含 kbfs_list_capabilities", names.includes("kbfs_list_capabilities"));
     check("含 kbfs_create_board（snake_case）", names.includes("kbfs_create_board"));
-    check("含 kbfs_set_metadata（M2-2）", names.includes("kbfs_set_metadata"));
+    check("含 kbfs_set_metadata", names.includes("kbfs_set_metadata"));
 
     // listCapabilities
     const cap = await client.callTool("kbfs_list_capabilities", { requestId: "cap" });
-    check("listCapabilities: commands=10", cap.ok && cap.result.commands.length === 10, JSON.stringify(cap?.result?.commands));
+    check("listCapabilities: commands=11", cap.ok && cap.result.commands.length === 11, JSON.stringify(cap?.result?.commands));
     check("listCapabilities: storageModes 含 dir", cap.result.storageModes.includes("dir"));
 
     // createBoard
@@ -132,7 +132,7 @@ async function main() {
 
     // getBoard（验证 patch 生效）
     const gb = await client.callTool("kbfs_get_board", { requestId: "R5", boardId: bid });
-    check("getBoard 返回元素且 fill=red", gb.ok && gb.result.elements[0]?.fill === "red", JSON.stringify(gb?.result?.elements?.[0]));
+    check("getBoard 返回元素且 backgroundColor=red", gb.ok && gb.result.elements[0]?.backgroundColor === "red", JSON.stringify(gb?.result?.elements?.[0]));
 
     // replaceBoard
     const r = await client.callTool("kbfs_replace_board", { requestId: "R6", boardId: bid, elements: [ELL] });
@@ -152,7 +152,7 @@ async function main() {
     const lb = await client.callTool("kbfs_list_boards", { requestId: "R10" });
     check("listBoards 含该画板节点", lb.ok && lb.result.nodes.some((n) => n.id === bid), JSON.stringify(lb?.result?.nodes));
 
-    // M2-2 setMetadata
+    // setMetadata
     const sm = await client.callTool("kbfs_set_metadata", { requestId: "RM1", boardId: bid, metadata: { status: "done", version: 1 } });
     check("setMetadata ok:true（kbfs_set_metadata 工具）", sm.ok && sm.result.ok === true, JSON.stringify(sm));
 

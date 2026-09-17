@@ -1,4 +1,4 @@
-// @kaiboard/mcp-server —— M1-3 本地 E2E
+// @kaiboard/mcp-server —— 本地 E2E
 // (A) Core + fsStorageAdapter 直接驱动，断言 --dir 落盘即见（KaiBoard fs 布局）
 // (B) 真·stdio MCP server 端到端：initialize / tools/list / listCapabilities /
 //     createBoard + requestId 幂等回放 / kbProtocol 拒绝 / getScreenshot 不支持(R1)
@@ -63,7 +63,7 @@ async function partA() {
     const p = await run("patchElement", { boardId: bid, patches: [{ id: "rect-1", fill: "red" }] });
     check("patchElement patched=1", p.ok && p.patched === 1, JSON.stringify(p));
     b = await readBoard(root, bid);
-    check("patch 生效(fill=red)", b?.elements?.[0]?.fill === "red", JSON.stringify(b?.elements?.[0]));
+    check("patch 生效(backgroundColor=red)", b?.elements?.[0]?.backgroundColor === "red", JSON.stringify(b?.elements?.[0]));
 
     const d = await run("deleteElement", { boardId: bid, ids: ["rect-1"] });
     check("deleteElement deleted=1", d.ok && d.deleted === 1, JSON.stringify(d));
@@ -86,17 +86,17 @@ async function partA() {
     const gb = await run("getBoard", { boardId: bid });
     check("getBoard 返回元素", gb.ok && gb.elements.length === 1);
 
-    // M2-2 setMetadata：画板级元数据写回 tree.json FileNode
+    // setMetadata：画板级元数据写回 tree.json FileNode
     const sm = await run("setMetadata", {
       boardId: bid,
-      metadata: { status: "done", version: 3, history: [{ ts: Date.now(), version: 3, note: "M2-2 e2e" }] },
+      metadata: { status: "done", version: 3, history: [{ ts: Date.now(), version: 3, note: "metadata e2e" }] },
     });
     check("setMetadata ok", sm.ok && sm.boardId === bid, JSON.stringify(sm));
     let tree2 = await readTree(root);
     const node2 = tree2.find((n) => n.id === bid);
     check("tree.json 节点写入 status=done", node2?.status === "done", JSON.stringify(node2));
     check("tree.json 节点写入 version=3", node2?.version === 3, JSON.stringify(node2));
-    check("tree.json 节点写入 history[0].note", node2?.history?.[0]?.note === "M2-2 e2e", JSON.stringify(node2?.history));
+    check("tree.json 节点写入 history[0].note", node2?.history?.[0]?.note === "metadata e2e", JSON.stringify(node2?.history));
     const readMeta = await adapter.getMetadata(bid);
     check("getMetadata 读回 status/version/history", readMeta?.status === "done" && readMeta?.version === 3 && readMeta?.history?.length === 1, JSON.stringify(readMeta));
     // 缺 boardId 在无当前画板的 --dir 模式应报错（而非静默成功）
@@ -160,10 +160,10 @@ async function partB() {
     check("initialize 返回 MCP 2024-11-05", init?.result?.protocolVersion === "2024-11-05", JSON.stringify(init?.result));
 
     const tl = await srv.rpc("tools/list", {});
-    check("tools/list 返回 11 个 tool(10命令+listCapabilities)", tl?.result?.tools?.length === 11, JSON.stringify(tl?.result?.tools?.length));
+    check("tools/list 返回 12 个 tool(11命令+listCapabilities)", tl?.result?.tools?.length === 12, JSON.stringify(tl?.result?.tools?.length));
 
     const cap = await srv.callTool("kbfs_list_capabilities", { requestId: "cap-1" });
-    check("listCapabilities: commands 含 10 命令", cap.ok && cap.result.commands.length === 10, JSON.stringify(cap?.result?.commands));
+    check("listCapabilities: commands 含 11 命令", cap.ok && cap.result.commands.length === 11, JSON.stringify(cap?.result?.commands));
     check("listCapabilities: storageModes 含 dir", cap.result.storageModes.includes("dir"));
 
     const c1 = await srv.callTool("kbfs_create_board", { requestId: "R1", name: "服务端画板" });
@@ -194,7 +194,7 @@ async function partB() {
     const add = await srv.callTool("kbfs_add_element", { requestId: "R4", boardId: bid, elements: [RECT] });
     check("server addElement 通过协议信封返回", add.ok && add.result.added === 1, JSON.stringify(add));
 
-    // M2-2 setMetadata：经 kbfs_set_metadata 工具写回 tree.json 节点元数据
+    // setMetadata：经 kbfs_set_metadata 工具写回 tree.json 节点元数据
     const sm = await srv.callTool("kbfs_set_metadata", { requestId: "R5", boardId: bid, metadata: { status: "review", version: 2 } });
     check("server setMetadata ok:true", sm.ok && sm.result.ok === true, JSON.stringify(sm));
     const treeAfterMeta = await readTree(root);
@@ -223,7 +223,7 @@ async function startFakeRelay(folderName) {
 }
 
 async function partC() {
-  console.log("\n[C] M2-3① 配置一致性探测（--dir 与 relay /info.folder 比对）");
+  console.log("\n[C] 配置一致性探测（--dir 与 relay /info.folder 比对）");
   // 一致：--dir 末段 == folder → 无告警
   {
     const relay = await startFakeRelay("KaiBoardFolder");
@@ -275,7 +275,7 @@ async function partC() {
   }
 }
 
-console.log("=== KaiBoard-MCP M1-3 E2E ===");
+console.log("=== kaiboard-mcp E2E ===");
 await partA();
 await partB();
 await partC();
