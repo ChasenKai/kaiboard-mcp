@@ -1,4 +1,4 @@
-# kaiboard-mcp
+# KaiBoard MCP Server
 
 **KaiBoard 的 MCP 服务端** —— 让支持 MCP 的 AI Agent 在你自己的白板上作画。
 
@@ -17,12 +17,12 @@
 
 `@kaiboard/mcp-server` 是**单一包**，通过同一组 `kbfs_*` 工具提供两种**可叠加**（非互斥）的工作方式：
 
-| | `--dir` 模式 | `--relay` 模式 |
+| | `--relay` 模式（主推） | `--dir` 模式 |
 |---|---|---|
-| 后端 | 你指定的本地文件夹 | 正在运行中的 KaiBoard 页面 |
-| 需要应用开着？ | 不需要 | 需要（且在应用内启用「Agent 共绘」） |
-| 典型用途 | Agent 自有的本地工作区 | Agent 直接操作用户当前画板，改动即时可见 |
-| 数据落点 | `<文件夹>/kaiboard-data/` | 用户自己的 KaiBoard 库 |
+| 后端 | 正在运行中的 KaiBoard 页面 | 你指定的本地文件夹 |
+| 需要应用开着？ | 需要（且在应用内启用「Agent 共绘」） | 不需要 |
+| 典型用途 | Agent 直接操作用户当前画板，改动即时可见 | Agent 自有的本地工作区 |
+| 数据落点 | 用户自己的 KaiBoard 库 | `<文件夹>/kaiboard-data/` |
 
 两者可同时启用：
 
@@ -40,18 +40,8 @@ npx -y @kaiboard/mcp-server --help
 
 ## 接进你的 MCP 客户端
 
-在客户端的 MCP 配置里加一条（`command` / `args` 按你的实际安装方式填写）：
-
-```json
-{
-  "kaiboard-mcp": {
-    "command": "npx",
-    "args": ["-y", "@kaiboard/mcp-server", "--dir", "/path/to/your/workspace"]
-  }
-}
-```
-
-`--relay` 模式需要额外带上中继令牌（在 KaiBoard 的「Agent 共绘」面板里取得）：
+**推荐：`--relay` 模式**（驱动你正在看的画板，改动即时可见）。
+需要带上中继令牌 —— 在 KaiBoard 的「Agent 共绘」面板里取得：
 
 ```json
 {
@@ -65,6 +55,19 @@ npx -y @kaiboard/mcp-server --help
 
 > `--relay` 会在本机 `127.0.0.1:8787` 起一个中继，与 KaiBoard 页面通信。
 > 因此中继与页面必须在**同一台机器**上，且操作期间页面保持打开。
+
+也可以只用 `--dir` 模式（不依赖应用，Agent 在本地文件夹里独立工作）：
+
+```json
+{
+  "kaiboard-mcp": {
+    "command": "npx",
+    "args": ["-y", "@kaiboard/mcp-server", "--dir", "/path/to/your/workspace"]
+  }
+}
+```
+
+两者可叠加：`"args": ["-y", "@kaiboard/mcp-server", "--relay", "--dir", "/path/to/your/workspace"]`
 
 改完配置后需要**重启你的 MCP 客户端**，让它重新加载。
 
@@ -87,7 +90,7 @@ npx -y @kaiboard/mcp-server --help
 | `kbfs_from_mermaid` | Mermaid 源码转成原生可编辑图元 |
 | `kbfs_set_metadata` | 写画板级元数据（状态 / 版本 / 历史 / 批注） |
 
-命令行细节、信封格式、错误码见 **[`docs/PROTOCOL-v2.md`](docs/PROTOCOL-v2.md)**。
+命令行细节、信封格式、错误码见 **[`docs/PROTOCOL.md`](docs/PROTOCOL.md)**。
 
 ## 元素与填充色
 

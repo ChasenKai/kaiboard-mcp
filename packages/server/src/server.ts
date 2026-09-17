@@ -44,7 +44,7 @@ function toolName(cmd: string): string {
 const TOOLS = [
   ...COMMANDS.map((cmd) => ({
     name: toolName(cmd),
-    description: `KaiBoard 共绘命令 ${cmd}（见 PROTOCOL-v2）。参数见各命令节。`,
+    description: `KaiBoard 共绘命令 ${cmd}（见 docs/PROTOCOL.md）。参数见各命令节。`,
     inputSchema: {
       type: "object",
       properties: {

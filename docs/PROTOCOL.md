@@ -1,4 +1,4 @@
-# KaiBoard Agent Protocol v2（v1.0.0）
+# KaiBoard Agent Protocol
 
 > **STATUS**：本文件是 `@kaiboard/mcp-server` 的**权威协议文档**，随首发版（v1.0.0）生效。
 > 版本真源：`packages/server/package.json` 的 `version`；协议版本与 KaiBoard 应用版本**相互独立**。
@@ -18,8 +18,8 @@
 
 | 绑定 | 启动方式 | 传输 | 说明 |
 |---|---|---|---|
+| **relay（`--relay`）· 主推** | `kaiboard-mcp --relay` | 本机 HTTP 中继（`127.0.0.1`） | 驱动**正在运行**的 KaiBoard 页面；需用户已启用「Agent 共绘」 |
 | **local（`--dir`）** | `kaiboard-mcp --dir <文件夹>` | 直读直写本地目录 | 服务端进程内嵌存储适配器（`fsStorageAdapter`），不依赖应用、不依赖中继 |
-| **relay（`--relay`）** | `kaiboard-mcp --relay` | 本机 HTTP 中继（`127.0.0.1`） | 驱动**正在运行**的 KaiBoard 页面；需用户已启用「Agent 共绘」 |
 
 > **单包双能力、可叠加**：两种方式同属 `@kaiboard/mcp-server`，可同时启用（`--relay --dir <path>`），工具前缀统一为 `kbfs_*`。
 > 协议规定「命令说什么 / 回什么」，不规定「走哪条线」；两种绑定都必须满足本协议的信封与语义。
