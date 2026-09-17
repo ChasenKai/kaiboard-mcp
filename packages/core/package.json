@@ -1,6 +1,6 @@
 {
   "name": "@kaiboard/core",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Storage-agnostic Agent co-drawing command core for KaiBoard (9 commands, StorageAdapter-driven).",
   "type": "module",
   "main": "./dist/index.js",

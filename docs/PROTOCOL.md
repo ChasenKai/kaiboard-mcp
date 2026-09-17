@@ -1,6 +1,6 @@
 # KaiBoard Agent Protocol
 
-> **STATUS**：本文件是 `@kaiboard/mcp-server` 的**权威协议文档**，随首发版（v1.0.0）生效。
+> **STATUS**：本文件是 `@kaiboard/mcp-server` 的**权威协议文档**，随首发版（v0.1.0）生效。
 > 版本真源：`packages/server/package.json` 的 `version`；协议版本与 KaiBoard 应用版本**相互独立**。
 >
 > 锚定依据（均实读源码 + 实测，非推测）：
@@ -32,7 +32,7 @@
 
 ```jsonc
 {
-  "kbProtocol": "1.0.0",   // 可选：不填则服务端按默认版本处理；填则参与协商（见 §2）
+  "kbProtocol": "0.1.0",   // 可选：不填则服务端按默认版本处理；填则参与协商（见 §2）
   "requestId": "uuid-v4",  // 可选：不填由服务端生成（将失去幂等回放能力，见 §3）
   "cmd": "getBoard",       // 命令之一（见 §6）；MCP 工具名见 §1.4
   "token": "24-hex",       // --dir 模式可省略（本地无远程）；relay 模式必填
@@ -44,14 +44,14 @@
 
 ```jsonc
 {
-  "kbProtocol": "1.0.0",
+  "kbProtocol": "0.1.0",
   "requestId": "uuid-v4",  // 原样回显，供客户端配对
   "ok": true,
   "result": { /* 命令专属 */ }
 }
 // 或失败：
 {
-  "kbProtocol": "1.0.0",
+  "kbProtocol": "0.1.0",
   "requestId": "uuid-v4",
   "ok": false,
   "error": { "code": "BOARD_NOT_FOUND", "message": "..." }
@@ -82,7 +82,7 @@
 
 - 客户端**可省略** `kbProtocol`（服务端按默认版本处理，便于宽松接入）。
 - 若携带：
-  - 命中当前版本（`1.0.0`）→ 正常执行；
+  - 命中当前版本（`0.1.0`）→ 正常执行；
   - 其它值（如 `0.9.0`）→ `error.code = "PROTOCOL_UNSUPPORTED"`。
 - 兼容规则：次版本（`1.x`）内可加命令、可加可选字段；主版本变更（`2.0`）才允许删改破坏性字段。
 
@@ -103,7 +103,7 @@
 
 ```jsonc
 {
-  "kbProtocol": "1.0.0",
+  "kbProtocol": "0.1.0",
   "commands": [                      // 命令白名单（11 条）
     "getBoard", "getScreenshot", "listBoards", "addElement",
     "patchElement", "deleteElement", "replaceBoard", "createBoard",
@@ -112,7 +112,7 @@
   "storageModes": ["idb", "fs", "dir", "relay"],
   "activeStorageMode": "relay",       // 当前实际生效的绑定
   "snapshot": { "max": 20 },          // replaceBoard 自动快照上限
-  "serverInfo": { "name": "kaiboard-mcp", "version": "1.0.0" },
+  "serverInfo": { "name": "kaiboard-mcp", "version": "0.1.0" },
   "relayAvailable": true,             // 中继进程是否已起
   "dirAvailable": false,              // 离线文件夹后端是否可用
   "pageConnected": true,              // 是否真的有 KaiBoard 页面连着

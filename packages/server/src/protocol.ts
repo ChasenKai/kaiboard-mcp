@@ -1,9 +1,9 @@
 // @kaiboard/mcp-server —— 协议信封与错误码映射（协议 §1/§2/§8）
 import type { AgentCmd } from "@kaiboard/core";
 
-export const KB_PROTOCOL = "1.0.0";
+export const KB_PROTOCOL = "0.1.0";
 export const SERVER_NAME = "kaiboard-mcp";
-export const SERVER_VERSION = "1.0.0"; // 应与本包 package.json 同步
+export const SERVER_VERSION = "0.1.0"; // 应与本包 package.json 同步
 
 export const COMMANDS: AgentCmd[] = [
   "getBoard",
@@ -19,7 +19,7 @@ export const COMMANDS: AgentCmd[] = [
   "setMetadata",
 ];
 
-/** kbProtocol 协商（§2）：当前仅 1.0.0。缺失=默认接受；其它值→不支持。 */
+/** kbProtocol 协商（§2）：当前仅 0.1.0。缺失=默认接受；其它值→不支持。 */
 export function negotiate(
   kbProtocol?: string,
 ): { ok: true } | { ok: false; code: "PROTOCOL_UNSUPPORTED"; message: string } {
