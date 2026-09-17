@@ -1,4 +1,4 @@
-// @kaiboard/mcp-server —— 内建本地中继（进程内，吸收原 bridge-relay.mjs + Companion）。
+// @kaibuddy/kaiboard-mcp —— 内建本地中继（进程内，吸收原 bridge-relay.mjs + Companion）。
 // 端点契约与 bridge-relay.mjs 完全一致：/info /state /cmd /resp，token 不匹配一律 403，/resp 轮询 20s 超时。
 // 由统一 server 在 --relay 模式直接 startRelay() 拉起，无需 child_process、无需独立 exe。
 // 仅监听 127.0.0.1；app 端 agentRelayClient.ts 零改动即可对接。

@@ -8,7 +8,7 @@
 
 | 组件 | 性质 | 许可 | 用途 |
 |---|---|---|---|
-| `@kaiboard/core` | 本仓内工作区包 | MIT | 指令核心（不属第三方，列出以便对照） |
+| `@kaibuddy/kaiboard-core` | 本仓内工作区包 | MIT | 指令核心（不属第三方，列出以便对照） |
 | `@excalidraw/excalidraw` | **可选** peerDependency | MIT | 元素类型与画布渲染（由宿主提供；纯 `--dir` 运行时可缺失） |
 | `@excalidraw/mermaid-to-excalidraw` | **可选** peerDependency | MIT | `fromMermaid` 命令：Mermaid 源码转原生图元（缺失时该命令返回明确的「不支持」提示） |
 | `mermaid` | 传递依赖（上述组件所需） | MIT | Mermaid 语法解析 |

@@ -1,4 +1,4 @@
-// @kaiboard/core —— 元素处理工具（纯函数，无存储依赖）
+// @kaibuddy/kaiboard-core —— 元素处理工具（纯函数，无存储依赖）
 
 import type { KbSource } from "./types.js";
 

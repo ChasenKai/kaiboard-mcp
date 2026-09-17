@@ -1,4 +1,4 @@
-// @kaiboard/core —— 指令执行器（存储无关）
+// @kaibuddy/kaiboard-core —— 指令执行器（存储无关）
 // 把原 agentBridge.ts 的 9 条共绘指令逻辑逐字搬来，所有「存储 / 当前画布 / 截图渲染」
 // 都经 StorageAdapter 注入。应用桥（agentBridge）与 MCP 服务端各自实现 StorageAdapter，
 // 本文件逻辑完全复用，保证两端行为一致。

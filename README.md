@@ -6,8 +6,8 @@
 
 | 包 | 作用 |
 |---|---|
-| [`@kaiboard/mcp-server`](packages/server) | MCP 服务端（stdio JSON-RPC 2.0），暴露 `kbfs_*` 工具 |
-| [`@kaiboard/core`](packages/core) | 与存储无关的指令核心（命令执行、元素处理、快照、Mermaid 转换） |
+| [`@kaibuddy/kaiboard-mcp`](packages/server) | MCP 服务端（stdio JSON-RPC 2.0），暴露 `kbfs_*` 工具 |
+| [`@kaibuddy/kaiboard-core`](packages/core) | 与存储无关的指令核心（命令执行、元素处理、快照、Mermaid 转换） |
 
 > 配套客户端是开源白板应用 **KaiBoard**（本地优先、无账号、无后端）。
 
@@ -15,7 +15,7 @@
 
 ## 它能做什么
 
-`@kaiboard/mcp-server` 是**单一包**，通过同一组 `kbfs_*` 工具提供两种**可叠加**（非互斥）的工作方式：
+`@kaibuddy/kaiboard-mcp` 是**单一包**，通过同一组 `kbfs_*` 工具提供两种**可叠加**（非互斥）的工作方式：
 
 | | `--relay` 模式（主推） | `--dir` 模式 |
 |---|---|---|
@@ -33,9 +33,9 @@ kaiboard-mcp --relay --dir /path/to/workspace
 ## 安装
 
 ```bash
-npm install -g @kaiboard/mcp-server
+npm install -g @kaibuddy/kaiboard-mcp
 # 或免安装直接运行
-npx -y @kaiboard/mcp-server --help
+npx -y @kaibuddy/kaiboard-mcp --help
 ```
 
 ## 接进你的 MCP 客户端
@@ -47,7 +47,7 @@ npx -y @kaiboard/mcp-server --help
 {
   "kaiboard": {
     "command": "npx",
-    "args": ["-y", "@kaiboard/mcp-server", "--relay"],
+    "args": ["-y", "@kaibuddy/kaiboard-mcp", "--relay"],
     "env": { "KAIBOARD_TOKEN": "<your-relay-token>" }
   }
 }
@@ -62,12 +62,12 @@ npx -y @kaiboard/mcp-server --help
 {
   "kaiboard-mcp": {
     "command": "npx",
-    "args": ["-y", "@kaiboard/mcp-server", "--dir", "/path/to/your/workspace"]
+    "args": ["-y", "@kaibuddy/kaiboard-mcp", "--dir", "/path/to/your/workspace"]
   }
 }
 ```
 
-两者可叠加：`"args": ["-y", "@kaiboard/mcp-server", "--relay", "--dir", "/path/to/your/workspace"]`
+两者可叠加：`"args": ["-y", "@kaibuddy/kaiboard-mcp", "--relay", "--dir", "/path/to/your/workspace"]`
 
 改完配置后需要**重启你的 MCP 客户端**，让它重新加载。
 
@@ -124,7 +124,7 @@ npm run smoke       # 真实 MCP 客户端冒烟（initialize → tools/call）
 
 ## 依赖说明
 
-- `@kaiboard/core` **无运行时硬依赖**：存储、画布、截图渲染都通过 `StorageAdapter` 注入，core 本身不绑定任何后端。
+- `@kaibuddy/kaiboard-core` **无运行时硬依赖**：存储、画布、截图渲染都通过 `StorageAdapter` 注入，core 本身不绑定任何后端。
 - `@excalidraw/excalidraw`、`@excalidraw/mermaid-to-excalidraw` 为 **可选 peerDependencies**，由宿主（应用或服务端）在运行时提供；`fromMermaid` 与 `getScreenshot` 在缺少它们的运行时会明确返回不支持，而非静默失败。
 - 第三方组件与许可见 [`NOTICE`](NOTICE) / [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md)。
 

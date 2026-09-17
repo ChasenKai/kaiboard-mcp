@@ -1,4 +1,4 @@
-// @kaiboard/mcp-server —— 本地 E2E
+// @kaibuddy/kaiboard-mcp —— 本地 E2E
 // (A) Core + fsStorageAdapter 直接驱动，断言 --dir 落盘即见（KaiBoard fs 布局）
 // (B) 真·stdio MCP server 端到端：initialize / tools/list / listCapabilities /
 //     createBoard + requestId 幂等回放 / kbProtocol 拒绝 / getScreenshot 不支持(R1)
@@ -11,8 +11,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { createServer as httpCreate } from "node:http";
-import * as core from "@kaiboard/core";
-import { createFsStorageAdapter } from "@kaiboard/mcp-server";
+import * as core from "@kaibuddy/kaiboard-core";
+import { createFsStorageAdapter } from "@kaibuddy/kaiboard-mcp";
 
 let pass = 0;
 let fail = 0;

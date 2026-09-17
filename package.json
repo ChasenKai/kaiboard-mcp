@@ -2,15 +2,15 @@
   "name": "kaiboard-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "KaiBoard Model Context Protocol monorepo — @kaiboard/core (storage-agnostic Agent co-drawing command core) + @kaiboard/mcp-server (stdio JSON-RPC MCP server). Lets AI agents draw on local-first KaiBoard whiteboards.",
+  "description": "KaiBoard Model Context Protocol monorepo — @kaibuddy/kaiboard-core (storage-agnostic Agent co-drawing command core) + @kaibuddy/kaiboard-mcp (stdio JSON-RPC MCP server). Lets AI agents draw on local-first KaiBoard whiteboards.",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "typecheck": "tsc -p packages/core/tsconfig.json --noEmit",
     "typecheck:core": "tsc -p packages/core/tsconfig.json --noEmit",
-    "build": "npm run build -w @kaiboard/core && npm run build -w @kaiboard/mcp-server",
-    "build:core": "npm run build -w @kaiboard/core",
+    "build": "npm run build -w @kaibuddy/kaiboard-core && npm run build -w @kaibuddy/kaiboard-mcp",
+    "build:core": "npm run build -w @kaibuddy/kaiboard-core",
     "e2e": "node packages/server/test/e2e.mjs",
     "smoke": "node packages/server/test/mcp-client-smoke.mjs"
   },

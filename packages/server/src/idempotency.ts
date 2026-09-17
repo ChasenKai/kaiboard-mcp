@@ -1,4 +1,4 @@
-// @kaiboard/mcp-server —— requestId 幂等缓存（协议 §3）
+// @kaibuddy/kaiboard-mcp —— requestId 幂等缓存（协议 §3）
 // 缓存近期 requestId → 响应；命中且未过期直接回放，不重执行写操作（避免网络超时重试双写）。
 
 interface Entry {

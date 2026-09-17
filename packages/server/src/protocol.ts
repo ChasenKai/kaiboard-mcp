@@ -1,5 +1,5 @@
-// @kaiboard/mcp-server —— 协议信封与错误码映射（协议 §1/§2/§8）
-import type { AgentCmd } from "@kaiboard/core";
+// @kaibuddy/kaiboard-mcp —— 协议信封与错误码映射（协议 §1/§2/§8）
+import type { AgentCmd } from "@kaibuddy/kaiboard-core";
 
 export const KB_PROTOCOL = "0.1.0";
 export const SERVER_NAME = "kaiboard-mcp";

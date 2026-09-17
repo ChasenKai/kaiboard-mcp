@@ -1,4 +1,4 @@
-// @kaiboard/mcp-server —— --dir 存储适配器（复用 @kaiboard/core 的 StorageAdapter）
+// @kaibuddy/kaiboard-mcp —— --dir 存储适配器（复用 @kaibuddy/kaiboard-core 的 StorageAdapter）
 // 文件布局与 app 的 fsStore.ts **完全一致**（落板即见）：
 //   <root>/kaiboard-data/tree.json         文件树节点 FileNode[]
 //   <root>/kaiboard-data/boards/<id>.json   每个画板内容 BoardData
@@ -7,7 +7,7 @@
 
 import { promises as fs } from "node:fs";
 import { join, dirname } from "node:path";
-import type { StorageAdapter, FileNode, BoardData } from "@kaiboard/core";
+import type { StorageAdapter, FileNode, BoardData } from "@kaibuddy/kaiboard-core";
 
 const DATA_SUB = "kaiboard-data";
 

@@ -1,8 +1,8 @@
-// @kaiboard/mcp-server —— 统一 MCP 服务端（stdio JSON-RPC 2.0）
+// @kaibuddy/kaiboard-mcp —— 统一 MCP 服务端（stdio JSON-RPC 2.0）
 // 双能力（非互斥）：--relay（内建拥有本地中继，命令级转发到运行中 KaiBoard）可独立启用；
 //   --dir（离线 FsStorageAdapter）为可叠加可选能力。两者可同时持有，命令按 args.storage 路由（默认 relay）。
 // 工具名统一 kbfs_*（10 命令 + listCapabilities）。协议：kbProtocol 协商 / requestId 幂等 / 标准错误码。
-// 所有 --dir 命令经 @kaiboard/core 的 executeCommand 执行；--relay 命令经 relay 转发到 app 端同款执行器。
+// 所有 --dir 命令经 @kaibuddy/kaiboard-core 的 executeCommand 执行；--relay 命令经 relay 转发到 app 端同款执行器。
 
 import { createFsStorageAdapter } from "./fsStorageAdapter.js";
 import { startRelay, type RelayHandle } from "./relay-runtime.js";
@@ -18,10 +18,10 @@ import {
   errorEnvelope,
   listCapabilitiesResult,
 } from "./protocol.js";
-import { executeCommand } from "@kaiboard/core";
+import { executeCommand } from "@kaibuddy/kaiboard-core";
 import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
-import type { AgentCmd, AgentCommand } from "@kaiboard/core";
+import type { AgentCmd, AgentCommand } from "@kaibuddy/kaiboard-core";
 
 function camelToSnake(s: string): string {
   return s.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();

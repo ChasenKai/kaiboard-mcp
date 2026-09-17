@@ -1,4 +1,4 @@
-// @kaiboard/core —— Mermaid → 原生 Excalidraw 图元（纯逻辑，依赖经动态 import）
+// @kaibuddy/kaiboard-core —— Mermaid → 原生 Excalidraw 图元（纯逻辑，依赖经动态 import）
 // 浏览器（app）与 Node（MCP --dir）共享；Node 下若无法加载 excalidraw，调用方应禁用本命令。
 
 /**

@@ -1,4 +1,4 @@
-// @kaiboard/core —— 桶导出。本目录即 @kaiboard/core 包内容。
+// @kaibuddy/kaiboard-core —— 桶导出。本目录即 @kaibuddy/kaiboard-core 包内容。
 export * from "./types.js";
 export * from "./elements.js";
 export * from "./snapshot.js";

@@ -1,7 +1,7 @@
 {
-  "name": "@kaiboard/mcp-server",
+  "name": "@kaibuddy/kaiboard-mcp",
   "version": "0.1.0",
-  "description": "KaiBoard MCP server (local --dir binding): stdio JSON-RPC + fsStorageAdapter, reusing @kaiboard/core.",
+  "description": "KaiBoard MCP server (local --dir binding): stdio JSON-RPC + fsStorageAdapter, reusing @kaibuddy/kaiboard-core.",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
@@ -20,7 +20,7 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
-    "@kaiboard/core": "^0.1.0"
+    "@kaibuddy/kaiboard-core": "^0.1.0"
   },
   "peerDependencies": {
     "@excalidraw/excalidraw": "*",

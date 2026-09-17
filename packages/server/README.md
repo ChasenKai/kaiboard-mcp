@@ -1,4 +1,4 @@
-# @kaiboard/mcp-server
+# @kaibuddy/kaiboard-mcp
 
 KaiBoard MCP server — lets AI agents draw **on your local KaiBoard whiteboards** over the Model Context Protocol (stdio JSON-RPC).
 
@@ -7,7 +7,7 @@ KaiBoard is a free, open-source, **local-first** whiteboard: your boards live on
 ## Install
 
 ```bash
-npm install -g @kaiboard/mcp-server
+npm install -g @kaibuddy/kaiboard-mcp
 ```
 
 Requires Node.js >= 18.
@@ -70,7 +70,7 @@ Binds directly to a local folder of `.excalidraw` / KaiBoard board files via the
 
 ## Notes
 
-- Built on `@kaiboard/core` (storage-agnostic command core).
+- Built on `@kaibuddy/kaiboard-core` (storage-agnostic command core).
 - This server is the **Beta** Agent surface of KaiBoard v1.1.0. AI / Agent features are experimental.
 - Local-first, privacy-first: your board data never leaves your device.
 

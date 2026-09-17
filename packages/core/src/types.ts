@@ -1,4 +1,4 @@
-// @kaiboard/core —— 存储无关的 Agent 指令核心类型。
+// @kaibuddy/kaiboard-core —— 存储无关的 Agent 指令核心类型。
 // 不依赖 window / DOM / postMessage；所有存储与渲染都经 StorageAdapter 注入。
 //
 // BoardData / FileNode 在包内自包含定义（与 app 仓 src/db.ts 的数据形状保持一致），

@@ -1,6 +1,6 @@
 # KaiBoard Agent Protocol
 
-> **STATUS**：本文件是 `@kaiboard/mcp-server` 的**权威协议文档**，随首发版（v0.1.0）生效。
+> **STATUS**：本文件是 `@kaibuddy/kaiboard-mcp` 的**权威协议文档**，随首发版（v0.1.0）生效。
 > 版本真源：`packages/server/package.json` 的 `version`；协议版本与 KaiBoard 应用版本**相互独立**。
 >
 > 锚定依据（均实读源码 + 实测，非推测）：
@@ -21,7 +21,7 @@
 | **relay（`--relay`）· 主推** | `kaiboard-mcp --relay` | 本机 HTTP 中继（`127.0.0.1`） | 驱动**正在运行**的 KaiBoard 页面；需用户已启用「Agent 共绘」 |
 | **local（`--dir`）** | `kaiboard-mcp --dir <文件夹>` | 直读直写本地目录 | 服务端进程内嵌存储适配器（`fsStorageAdapter`），不依赖应用、不依赖中继 |
 
-> **单包双能力、可叠加**：两种方式同属 `@kaiboard/mcp-server`，可同时启用（`--relay --dir <path>`），工具前缀统一为 `kbfs_*`。
+> **单包双能力、可叠加**：两种方式同属 `@kaibuddy/kaiboard-mcp`，可同时启用（`--relay --dir <path>`），工具前缀统一为 `kbfs_*`。
 > 协议规定「命令说什么 / 回什么」，不规定「走哪条线」；两种绑定都必须满足本协议的信封与语义。
 
 ---
@@ -78,7 +78,7 @@
 
 ## 2. 版本协商
 
-`kbProtocol` 跟随 `@kaiboard/mcp-server` 的版本号（不单列第三根版本轴；区别于 MCP 通用版本 `2024-11-05`）。
+`kbProtocol` 跟随 `@kaibuddy/kaiboard-mcp` 的版本号（不单列第三根版本轴；区别于 MCP 通用版本 `2024-11-05`）。
 
 - 客户端**可省略** `kbProtocol`（服务端按默认版本处理，便于宽松接入）。
 - 若携带：

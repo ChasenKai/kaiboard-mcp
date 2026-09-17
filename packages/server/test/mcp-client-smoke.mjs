@@ -1,4 +1,4 @@
-// @kaiboard/mcp-server —— 真实 MCP 客户端冒烟（不依赖官方 SDK）
+// @kaibuddy/kaiboard-mcp —— 真实 MCP 客户端冒烟（不依赖官方 SDK）
 //
 // 为什么不用 @modelcontextprotocol/sdk：本沙箱 safe-delete 钩子会阻断 npm 缓存临时文件清理，
 // SDK 安装被 EPERM 中断且提取残缺。改为手写一个「协议忠实」的最小 MCP 客户端：
