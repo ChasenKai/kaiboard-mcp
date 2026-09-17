@@ -108,9 +108,9 @@ npx -y @kaiboard/mcp-server --help
 
 ## 数据与隐私
 
-- **画板数据不会上传到任何服务器。** `--dir` 模式直接读写你指定的本地文件夹；`--relay` 模式的中继只监听 `127.0.0.1`，用于同机通信。
+- **画板数据不会上传到任何服务器。** `--relay` 模式的中继只监听 `127.0.0.1`，仅用于同机通信；`--dir` 模式直接读写你指定的本地文件夹。
 - 无需账号，无需登录。
-- `--dir` 的落盘布局：`kaiboard-data/boards/<id>.json` + `kaiboard-data/tree.json`；该格式可直接被 KaiBoard 打开。
+- 落盘布局（`--dir` 模式）：`kaiboard-data/boards/<id>.json` + `kaiboard-data/tree.json`，该格式可直接被 KaiBoard 打开。
 
 ## 开发
 

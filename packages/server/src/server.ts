@@ -208,7 +208,9 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; relay:
     relayToken = relay.token;
     relayStarted = true;
   }
-  const relayProbe = probeRelayFolder(relayUrl); // 异步探测 KaiBoard 当前文件夹（仅 --dir 一致性告警用）
+  // 只在**有探测基址**时探测：`--relay` 模式会把它设为内建中继地址；纯 `--dir` 想探测则显式传 `--relay-url`。
+  // 无基址时返回已决议的 null，避免对 undefined 取 replace 产生 rejected promise（会在 await 处炸掉调用方）。
+  const relayProbe = relayUrl ? probeRelayFolder(relayUrl) : Promise.resolve(null);
   let buf = "";
   let pending = 0;
   let stdinClosed = false;
@@ -224,7 +226,11 @@ export function createServer(opts: { rootDir?: string; relayUrl?: string; relay:
     const kbProtocol = args.kbProtocol || KB_PROTOCOL;
 
     if (name === "kbfs_list_capabilities") {
-      const folder = relayStarted ? await relayProbe : null;
+      // 有探测基址就消费这次探测（best-effort、失败静默），**不要求开了 --relay 模式**。
+      // 依据 cli.ts 对 `--relay-url` 的定义：「仅设探测基址，不切换模式」——
+      // 纯 `--dir` 用户也应能收到「工作目录与 KaiBoard 当前文件夹不一致」的告警，
+      // 否则「Agent 写本地文件、用户开着另一份、看不到新内容」这个坑将无人提醒。
+      const folder = relayUrl ? await relayProbe : null;
       const warnings = opts.rootDir ? computeDirWarnings(opts.rootDir, folder) : [];
       // 页面是否真连上（relayAvailable 只代表中继进程在跑）
       const pageConnected = relayStarted
