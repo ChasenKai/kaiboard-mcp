@@ -1,22 +1,40 @@
 {
   "name": "@kaibuddy/kaiboard-core",
   "version": "0.1.0",
-  "description": "Storage-agnostic Agent co-drawing command core for KaiBoard (9 commands, StorageAdapter-driven).",
-  "type": "module",
+  "description": "Storage-agnostic command core for KaiBoard agent co-drawing: 11 commands driven through a pluggable storage adapter.",
+  "keywords": [
+    "kaiboard",
+    "mcp",
+    "model-context-protocol",
+    "excalidraw",
+    "whiteboard",
+    "ai-agent",
+    "local-first"
+  ],
+  "license": "MIT",
+  "author": "ChasenKai",
+  "homepage": "https://github.com/ChasenKai/kaiboard-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChasenKai/kaiboard-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ChasenKai/kaiboard-mcp/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
   "files": [
     "dist",
     "src",
     "LICENSE",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -34,8 +52,11 @@
       "optional": true
     }
   },
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   }
 }

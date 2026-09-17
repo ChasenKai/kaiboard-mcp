@@ -1,9 +1,31 @@
 {
   "name": "@kaibuddy/kaiboard-mcp",
   "version": "0.1.0",
-  "description": "KaiBoard MCP server (local --dir binding): stdio JSON-RPC + fsStorageAdapter, reusing @kaibuddy/kaiboard-core.",
-  "type": "module",
+  "description": "KaiBoard MCP server: let AI agents draw on your local KaiBoard whiteboards over stdio JSON-RPC. --relay drives the live board; --dir works in a local folder.",
+  "keywords": [
+    "kaiboard",
+    "mcp",
+    "model-context-protocol",
+    "excalidraw",
+    "whiteboard",
+    "ai-agent",
+    "local-first"
+  ],
+  "license": "MIT",
+  "author": "ChasenKai",
+  "homepage": "https://github.com/ChasenKai/kaiboard-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChasenKai/kaiboard-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ChasenKai/kaiboard-mcp/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
     "kaiboard-mcp": "./dist/cli.js"
   },
@@ -13,6 +35,9 @@
     "LICENSE",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -34,8 +59,5 @@
       "optional": true
     }
   },
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
+  "type": "module"
 }
