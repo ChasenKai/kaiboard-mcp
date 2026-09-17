@@ -2,23 +2,31 @@ kaiboard-mcp
 Copyright (c) 2026 ChasenKai
 
 This product includes software developed by third parties.
+本产品包含第三方开发的软件。
 
-本仓为独立实现，**不包含**任何上游项目的源代码副本（未 fork）；上游组件均以
-npm 依赖（含可选 peer 依赖、构建期依赖）形式引用。
+本仓为独立实现，不包含任何上游项目的源代码副本（未 fork）；上游组件均以 npm 依赖
+（含可选 peer 依赖与构建期依赖）形式引用。
+This repo is an independent implementation and vendors no upstream source code (no fork);
+upstream components are used as ordinary npm dependencies, including optional peer
+dependencies and build-time dependencies.
 
 完整清单与许可条款见 THIRD_PARTY_LICENSES.md。
+See THIRD_PARTY_LICENSES.md for the full list and license terms.
 
 ------------------------------------------------------------------------
 
-组件一览（详见 THIRD_PARTY_LICENSES.md）：
+组件一览 / Components:
 
-  @excalidraw/excalidraw                MIT          （可选 peer 依赖）
-  @excalidraw/mermaid-to-excalidraw     MIT          （可选 peer 依赖）
-  mermaid                               MIT          （上述依赖的传递依赖）
-  typescript                            Apache-2.0   （仅构建期）
-  @types/node                           MIT          （仅构建期）
+  @excalidraw/excalidraw                MIT          （可选 peer 依赖 / optional peer dependency）
+  @excalidraw/mermaid-to-excalidraw     MIT          （可选 peer 依赖 / optional peer dependency）
+  mermaid                               MIT          （传递依赖 / transitive dependency of the above）
+  typescript                            Apache-2.0   （仅构建期 / build-time only）
+  @types/node                           MIT          （仅构建期 / build-time only）
 
 ------------------------------------------------------------------------
 
-本项目以 MIT 许可发布，全文见 LICENSE。各第三方组件仍归其各自版权人所有，
-并按其自身许可条款授权；本项目的 MIT 许可不改变这些条款。
+本项目以 MIT 许可发布，全文见 LICENSE。各第三方组件仍归其各自版权人所有，并按其自身
+许可条款授权；本项目的 MIT 许可不改变这些条款。
+This project is released under the MIT license; see LICENSE for the full text.
+Each third-party component remains the property of its respective copyright holder and is
+licensed under its own terms, which this project's MIT license does not alter.

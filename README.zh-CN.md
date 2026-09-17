@@ -1,6 +1,6 @@
 # KaiBoard MCP Server
 
-[English](./README.md) | **简体中文** · [协议文档](./docs/PROTOCOL.md) · [变更日志](./CHANGELOG.md)
+[English](./README.md) | **简体中文** · [协议文档](./docs/PROTOCOL.zh-CN.md) · [变更日志](./CHANGELOG.md)
 
 > 让支持 MCP 的 AI Agent 在你自己的 KaiBoard 白板上作画。
 
@@ -95,7 +95,7 @@ npx -y @kaibuddy/kaiboard-mcp
 | `kbfs_from_mermaid` | Mermaid 源码转成原生可编辑图元 |
 | `kbfs_set_metadata` | 写画板级元数据（状态 / 版本 / 历史 / 批注） |
 
-命令行细节、信封格式、错误码见 **[`docs/PROTOCOL.md`](./docs/PROTOCOL.md)**。
+命令行细节、信封格式、错误码见 **[`docs/PROTOCOL.zh-CN.md`](./docs/PROTOCOL.zh-CN.md)**。
 
 ## 元素与填充色
 

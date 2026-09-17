@@ -1,5 +1,7 @@
 # @kaibuddy/kaiboard-core
 
+**English** | [简体中文](./README.zh-CN.md)
+
 Storage-agnostic command core for KaiBoard Agent co-drawing. Reused by [`@kaibuddy/kaiboard-mcp`](../server).
 
 Provides the command executor, element model, snapshot/merge logic, and Mermaid → Excalidraw conversion — independent of any storage backend (driven by a `StorageAdapter`).

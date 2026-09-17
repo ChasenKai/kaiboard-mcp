@@ -1,5 +1,7 @@
 # @kaibuddy/kaiboard-mcp
 
+**English** | [简体中文](./README.zh-CN.md)
+
 KaiBoard MCP server — lets AI agents draw **on your local KaiBoard whiteboards** over the Model Context Protocol (stdio JSON-RPC).
 
 KaiBoard is a free, open-source, **local-first** whiteboard: your boards live on your device, never in the cloud. This server is the bridge that lets an Agent read and edit those boards — the agent runs wherever your MCP client runs; **the canvas stays on your machine**.

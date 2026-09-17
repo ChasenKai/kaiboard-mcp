@@ -1,55 +1,57 @@
 # KaiBoard Agent Protocol
 
-> **STATUS**：本文件是 `@kaibuddy/kaiboard-mcp` 的**权威协议文档**，随首发版（v0.1.1）生效。
-> 版本真源：`packages/server/package.json` 的 `version`；协议版本与 KaiBoard 应用版本**相互独立**。
+**English** | [简体中文](./PROTOCOL.zh-CN.md) · [README](../README.md) · [Changelog](../CHANGELOG.md)
+
+> **STATUS**: This is the authoritative protocol document for `@kaibuddy/kaiboard-mcp`, in effect as of `v0.1.1`.
+> Version source of truth: the `version` field in `packages/server/package.json`. The protocol version is **independent of the KaiBoard app version**.
 >
-> 锚定依据（均实读源码 + 实测，非推测）：
-> - 命令真源：`packages/core/src/executor.ts`
-> - 传输真源：`packages/server/src/server.ts`（stdio JSON-RPC 2.0，工具前缀 `kbfs_*`）
-> - 信封 / 错误码：`packages/server/src/protocol.ts`
+> Anchored to real code (read from source and exercised by tests, not inferred):
+> - Commands: `packages/core/src/executor.ts`
+> - Transport: `packages/server/src/server.ts` (stdio JSON-RPC 2.0, tool prefix `kbfs_*`)
+> - Envelope / error codes: `packages/server/src/protocol.ts`
 
 ---
 
-## 0. 范围与定位
+## 0. Scope and positioning
 
-本协议定义 **Agent ↔ KaiBoard** 的逻辑指令契约（命令集 + 信封 + 版本与能力协商 + 错误码 + 数据边界）。
+This protocol defines the **Agent ↔ KaiBoard** logical command contract (command set + envelope + version and capability negotiation + error codes + data boundary).
 
-**传输无关（transport-agnostic）**：同一套逻辑命令可绑定到不同传输。
+It is **transport-agnostic**: the same logical commands can be bound to different transports.
 
-| 绑定 | 启动方式 | 传输 | 说明 |
+| Binding | How to start | Transport | Notes |
 |---|---|---|---|
-| **relay（`--relay`）· 主推** | `kaiboard-mcp --relay` | 本机 HTTP 中继（`127.0.0.1`） | 驱动**正在运行**的 KaiBoard 页面；需用户已启用「Agent 共绘」 |
-| **local（`--dir`）** | `kaiboard-mcp --dir <文件夹>` | 直读直写本地目录 | 服务端进程内嵌存储适配器（`fsStorageAdapter`），不依赖应用、不依赖中继 |
+| **relay (`--relay`) · recommended** | `kaiboard-mcp --relay` | Local HTTP relay (`127.0.0.1`) | Drives a **running** KaiBoard page; the user must have "Agent co-draw" enabled |
+| **local (`--dir`)** | `kaiboard-mcp --dir <folder>` | Direct read/write of a local directory | The server embeds a storage adapter (`fsStorageAdapter`); no app, no relay required |
 
-> **单包双能力、可叠加**：两种方式同属 `@kaibuddy/kaiboard-mcp`，可同时启用（`--relay --dir <path>`），工具前缀统一为 `kbfs_*`。
-> 协议规定「命令说什么 / 回什么」，不规定「走哪条线」；两种绑定都必须满足本协议的信封与语义。
+> **Single package, two combinable modes**: both belong to `@kaiboard/mcp-server` and can be enabled together (`--relay --dir <path>`); the tool prefix is always `kbfs_*`.
+> The protocol specifies *what a command says and returns*, not *which transport carries it*; both bindings must satisfy this envelope and semantics.
 
 ---
 
-## 1. 信封（Envelope）
+## 1. Envelope
 
-### 1.1 请求
+### 1.1 Request
 
 ```jsonc
 {
-  "kbProtocol": "0.1.1",   // 可选：不填则服务端按默认版本处理；填则参与协商（见 §2）
-  "requestId": "uuid-v4",  // 可选：不填由服务端生成（将失去幂等回放能力，见 §3）
-  "cmd": "getBoard",       // 命令之一（见 §6）；MCP 工具名见 §1.4
-  "token": "24-hex",       // --dir 模式可省略（本地无远程）；relay 模式必填
-  // ...命令专属参数（见各命令节）
+  "kbProtocol": "0.1.1",   // optional: omit to let the server assume its default; supply it to negotiate (see §2)
+  "requestId": "uuid-v4",  // optional: the server generates one if omitted (losing idempotent replay, see §3)
+  "cmd": "getBoard",       // one of the commands (see §6); MCP tool names in §1.4
+  "token": "24-hex",       // omittable in --dir mode (purely local); required for relay mode
+  // ...command-specific parameters (see each command's section)
 }
 ```
 
-### 1.2 响应
+### 1.2 Response
 
 ```jsonc
 {
   "kbProtocol": "0.1.1",
-  "requestId": "uuid-v4",  // 原样回显，供客户端配对
+  "requestId": "uuid-v4",  // echoed back so the client can pair it
   "ok": true,
-  "result": { /* 命令专属 */ }
+  "result": { /* command-specific */ }
 }
-// 或失败：
+// or on failure:
 {
   "kbProtocol": "0.1.1",
   "requestId": "uuid-v4",
@@ -58,201 +60,201 @@
 }
 ```
 
-### 1.3 传输包裹（MCP 绑定）
+### 1.3 Transport wrapping (MCP binding)
 
-- 请求经 JSON-RPC 2.0 `tools/call` 包裹：`params.arguments` 即 §1.1 的协议请求体字段。
-- 响应在 `result.content[0].text`（JSON 字符串），客户端 `JSON.parse` 后得到 §1.2 的响应对象。
-- `initialize` 走 MCP 标准握手（`protocolVersion: "2024-11-05"`）；`params.arguments.kbProtocol` 可携带本协议版本做二次协商。
-- `--dir` 绑定时，服务端进程内直接调用 core 执行器，返回本协议响应对象。
+- Requests are wrapped in JSON-RPC 2.0 `tools/call`: `params.arguments` carries the §1.1 request fields directly.
+- Responses arrive in `result.content[0].text` (a JSON string); the client `JSON.parse`s it into the §1.2 response object.
+- `initialize` follows the standard MCP handshake (`protocolVersion: "2024-11-05"`); `params.arguments.kbProtocol` can carry this protocol's version for a second negotiation round.
+- Under the `--dir` binding the server calls the core executor in-process and returns this protocol's response object directly.
 
-### 1.4 MCP 工具命名
+### 1.4 MCP tool naming
 
-- 命令 → 工具名映射：**`kbfs_` + camelCase 转 snake_case**。
-  例：`getBoard` → `kbfs_get_board`；`addElement` → `kbfs_add_element`；`replaceBoard` → `kbfs_replace_board`。
-- 能力声明工具：`kbfs_list_capabilities`。
-- `tools/list` 共返回 **12 个工具**（11 个命令 + `kbfs_list_capabilities`）。
-- 各工具 `inputSchema.properties` 含
-  `kbProtocol / requestId / token / boardId / elements / patches / ids / name / parentId / mermaid / source / opts / metadata`，`required: []`（按需填，缺省走默认语义）。
-
----
-
-## 2. 版本协商
-
-`kbProtocol` 跟随 `@kaibuddy/kaiboard-mcp` 的版本号（不单列第三根版本轴；区别于 MCP 通用版本 `2024-11-05`）。
-
-- 客户端**可省略** `kbProtocol`（服务端按默认版本处理，便于宽松接入）。
-- 若携带：
-  - 命中当前版本（`0.1.1`）→ 正常执行；
-  - 其它值（如 `0.9.0`）→ `error.code = "PROTOCOL_UNSUPPORTED"`。
-- 兼容规则：次版本（`1.x`）内可加命令、可加可选字段；主版本变更（`2.0`）才允许删改破坏性字段。
+- Command → tool name: **`kbfs_` + camelCase converted to snake_case**.
+  e.g. `getBoard` → `kbfs_get_board`; `addElement` → `kbfs_add_element`; `replaceBoard` → `kbfs_replace_board`.
+- Capability tool: `kbfs_list_capabilities`.
+- `tools/list` returns **12 tools** (11 commands + `kbfs_list_capabilities`).
+- Each tool's `inputSchema.properties` contains
+  `kbProtocol / requestId / token / boardId / elements / patches / ids / name / parentId / mermaid / source / opts / metadata`, with `required: []` (fill in as needed; defaults apply otherwise).
 
 ---
 
-## 3. 幂等（requestId 去重）
+## 2. Version negotiation
 
-- `requestId` 由客户端生成，推荐稳定 UUID（`crypto.randomUUID()`）。**不填则服务端自动生成，该次调用不参与去重。**
-- 服务端维护近期 `requestId` 缓存；收到**已见过**的 `requestId` → **直接回放原响应**，不重复执行写操作。
-- 用途：写类命令在网络超时重试时，用**同一 `requestId`** 可避免双写。
-- 客户端纪律：重试必须沿用同一 `requestId`；若要强制重做，须换新 `requestId`。
+`kbProtocol` follows the version of `@kaiboard/mcp-server` (it is not a third version axis; it is distinct from the MCP protocol version `2024-11-05`).
+
+- Clients **may omit** `kbProtocol` (the server assumes its default, for lenient onboarding).
+- If supplied:
+  - matching the current version (`0.1.1`) → execute normally;
+  - any other value (e.g. `0.9.0`) → `error.code = "PROTOCOL_UNSUPPORTED"`.
+- Compatibility rule: within a minor line (`1.x`) commands and optional fields may be added; only a major bump (`2.0`) may remove or change breaking fields.
 
 ---
 
-## 4. 能力协商（listCapabilities）
+## 3. Idempotency (requestId de-duplication)
 
-`kbfs_list_capabilities` 返回：
+- `requestId` is client-generated; a stable UUID is recommended (`crypto.randomUUID()`). **If omitted, the server generates one and that call does not participate in de-duplication.**
+- The server keeps a recent `requestId` cache; on a **previously seen** `requestId` it **replays the original response** instead of re-executing the write.
+- Purpose: when a write command is retried after a network timeout, reusing the **same `requestId`** prevents double-writes.
+- Client discipline: retries must reuse the same `requestId`; to force a redo, use a new one.
+
+---
+
+## 4. Capability negotiation (listCapabilities)
+
+`kbfs_list_capabilities` returns:
 
 ```jsonc
 {
   "kbProtocol": "0.1.1",
-  "commands": [                      // 命令白名单（11 条）
+  "commands": [                      // command allow-list (11 entries)
     "getBoard", "getScreenshot", "listBoards", "addElement",
     "patchElement", "deleteElement", "replaceBoard", "createBoard",
     "deleteBoard", "fromMermaid", "setMetadata"
   ],
   "storageModes": ["idb", "fs", "dir", "relay"],
-  "activeStorageMode": "relay",       // 当前实际生效的绑定
-  "snapshot": { "max": 20 },          // replaceBoard 自动快照上限
+  "activeStorageMode": "relay",       // the binding actually in effect
+  "snapshot": { "max": 20 },          // replaceBoard auto-snapshot limit
   "serverInfo": { "name": "kaiboard-mcp", "version": "0.1.1" },
-  "relayAvailable": true,             // 中继进程是否已起
-  "dirAvailable": false,              // 离线文件夹后端是否可用
-  "pageConnected": true,              // 是否真的有 KaiBoard 页面连着
-  "relayFolder": "KaiBoardFolder",    // 页面当前文件夹名；不可达 = null
-  "dirWarnings": []                   // 非空 = 配置不一致，Agent 应先提示用户
+  "relayAvailable": true,             // whether the relay process is up
+  "dirAvailable": false,              // whether the offline folder backend is available
+  "pageConnected": true,              // whether a KaiBoard page is actually connected
+  "relayFolder": "KaiBoardFolder",    // the folder the page currently has open; null if unreachable
+  "dirWarnings": []                   // non-empty = configuration mismatch; the agent should tell the user first
 }
 ```
 
-**几个字段的语义，接入时务必分清：**
+**Fields you must not confuse when integrating:**
 
-- `relayAvailable` 只表示**中继进程起来了**，**不等于页面已连上**；判断「真的能写」要看 `pageConnected`。
-- `pageConnected` 有时间窗（覆盖一次长轮询 + 重连间隔），页面刚关闭的短时间内可能仍报 `true`。
-- `dirWarnings` 非空表示 `--dir` 的工作目录与 KaiBoard 当前文件夹**不是同一个**，此时 Agent 写入的内容需要用户在应用内显式导入才可见 —— 应先提示用户，再继续写入。
+- `relayAvailable` only means **the relay process is up** — it does **not** mean a page is connected; check `pageConnected` to know whether writes can actually land.
+- `pageConnected` has a time window (it covers one long-poll plus a reconnect interval), so it may still read `true` briefly after the page closes.
+- A non-empty `dirWarnings` means the `--dir` working folder is **not the same** as the folder KaiBoard currently has open; content written by the agent then only becomes visible after the user imports it in the app — surface this to the user before continuing.
 
 ---
 
-## 5. 存储模式（storageModes）
+## 5. Storage modes (storageModes)
 
-| mode | 含义 | 落盘 / 可见性 |
+| mode | Meaning | On-disk / visibility |
 |---|---|---|
-| `dir` | `--dir` 模式，Agent 工作文件夹 | `boards/<id>.json` + `tree.json`；可读名经 `tree.json` 映射 |
-| `fs` | 应用「本地文件夹」存储（File System Access API） | `kaiboard-data/boards/<id>.json` + `tree.json`，落盘即见 |
-| `idb` | 浏览器 IndexedDB（应用默认存储） | 仅当前页面可见 |
-| `relay` | 经本机中继驱动运行中的页面 | 由页面按用户所选存储落盘 |
+| `dir` | `--dir` mode, the agent's working folder | `boards/<id>.json` + `tree.json`; human-readable names are mapped through `tree.json` |
+| `fs` | The app's "local folder" storage (File System Access API) | `kaiboard-data/boards/<id>.json` + `tree.json`, visible as soon as written |
+| `idb` | Browser IndexedDB (the app's default storage) | Visible only to the current page |
+| `relay` | Driving a running page through the local relay | The page persists to whichever storage the user selected |
 
-**`--dir` 的落盘格式**：以 `boards/<id>.json`（BoardData）+ `tree.json`（文件树）为主存储，
-**不是**「一个 `.excalidraw` 文件 = 一个画板」。`.excalidraw` 仅用于导入导出等互操作场景。
-`tree.json` 即清单文件，画板级元数据（状态 / 版本 / 历史 / 批注）扩展在其 `FileNode` 上。
+**On-disk format for `--dir`**: the primary storage is `boards/<id>.json` (BoardData) plus `tree.json` (the file tree) —
+**not** "one `.excalidraw` file per board". `.excalidraw` is used only for import/export interoperability.
+`tree.json` is the manifest; board-level metadata (status / version / history / comments) extends its `FileNode`.
 
 ---
 
-## 6. 命令集
+## 6. Command set
 
-> **寻址**：所有画板级命令接受可选 `boardId`。
-> - 缺省或等于当前打开画板 → 走实时 API（可撤销、即时重绘）。
-> - 显式指定其它 `boardId` → 直写存储（不切画布），写完通知界面刷新树。
+> **Addressing**: every board-level command accepts an optional `boardId`.
+> - Omitted, or equal to the currently open board → uses the live API (undoable, redraws immediately).
+> - An explicit different `boardId` → writes straight to storage (without switching the canvas) and notifies the UI to refresh the tree.
 >
-> **溯源**：写类命令可带 `source: { kind, text }`，落到新元素 `customData.__kbSource`，`getBoard` 可原样回读。
+> **Provenance**: write commands may carry `source: { kind, text }`, which lands in the new element's `customData.__kbSource` and can be read back verbatim by `getBoard`.
 
-### 6.1 getBoard（读）
-- 参数：`{ boardId? }`
-- 响应：`{ boardId: string|null, elements: Element[] }`
-- 说明：目标不存在时返回**空数组**（不报错）。`BOARD_NOT_FOUND` 在本绑定为保留码（见 §8）。
+### 6.1 getBoard (read)
+- Parameters: `{ boardId? }`
+- Response: `{ boardId: string|null, elements: Element[] }`
+- Notes: a missing target returns an **empty array** (not an error). `BOARD_NOT_FOUND` is reserved under this binding (see §7).
 
-### 6.2 getScreenshot（读）
-- 参数：`{ boardId?, opts?: { maxWidthOrHeight?, background?, darkMode? } }`
-- 行为：
-  - **空画板** → `{ ok: true, empty: true, dataUrl: null, boardId }`（成功，非错误）
-  - **非空 + 有渲染能力**（`--relay`，由页面注入渲染）→ `{ ok: true, mimeType: "image/png", bytes, dataUrl }`
-  - **非空 + 无渲染能力**（`--dir`，纯 Node 无 canvas）→ `{ ok: false, error: "screenshot unsupported in this runtime" }` → 错误码 `EXEC_FAILED`
-- 错误（保留）：`BOARD_NOT_FOUND`
+### 6.2 getScreenshot (read)
+- Parameters: `{ boardId?, opts?: { maxWidthOrHeight?, background?, darkMode? } }`
+- Behaviour:
+  - **Empty board** → `{ ok: true, empty: true, dataUrl: null, boardId }` (success, not an error)
+  - **Non-empty + rendering available** (`--relay`, the page supplies rendering) → `{ ok: true, mimeType: "image/png", bytes, dataUrl }`
+  - **Non-empty + no renderer** (`--dir`, pure Node with no canvas) → `{ ok: false, error: "screenshot unsupported in this runtime" }` → error code `EXEC_FAILED`
+- Errors (reserved): `BOARD_NOT_FOUND`
 
-### 6.3 listBoards（读）
-- 参数：`{}`
-- 响应：`{ activeBoardId: string|null, nodes: [{ id, type: "board"|"folder", name, parentId, updatedAt }] }`
+### 6.3 listBoards (read)
+- Parameters: `{}`
+- Response: `{ activeBoardId: string|null, nodes: [{ id, type: "board"|"folder", name, parentId, updatedAt }] }`
 
-### 6.4 addElement（写）
-- 参数：`{ elements: Element | Element[], boardId?, source? }`
-- 响应：`{ ok: true, added: number, ids: string[] }`（`ids` 为稳定元素 id，供后续 patch / delete）
-- 说明：非空画板默认把新元素整体下移到现有内容下方（避免重叠）；`elements` 为空时返回 `added: 0`（不报错）。
-- 元素属性：填充色可写短名 `fill`（等价 `backgroundColor`），描边可写 `stroke`（等价 `strokeColor`）。
+### 6.4 addElement (write)
+- Parameters: `{ elements: Element | Element[], boardId?, source? }`
+- Response: `{ ok: true, added: number, ids: string[] }` (`ids` are stable element ids for later patch / delete)
+- Notes: on a non-empty board, new elements are moved below existing content by default (to avoid overlap). An empty `elements` returns `added: 0` (not an error).
+- Element properties: `fill` is accepted as a shorthand for `backgroundColor`, and `stroke` for `strokeColor`.
 
-### 6.5 patchElement（写）
-- 参数：`{ patches: { id, ...属性 } | { id, ...属性 }[], boardId? }`
-- 响应：`{ ok: true, patched: number, missing: string[] }`（`missing` = 不存在的 id）
-- 说明：按 id 局部合并属性，保留原 `id`；`patches` 为空时返回 `patched: 0`。
+### 6.5 patchElement (write)
+- Parameters: `{ patches: { id, ...props } | { id, ...props }[], boardId? }`
+- Response: `{ ok: true, patched: number, missing: string[] }` (`missing` = ids that do not exist)
+- Notes: merges properties by id, keeping the original `id`; an empty `patches` returns `patched: 0`.
 
-### 6.6 deleteElement（写）
-- 参数：`{ ids: string | string[], boardId? }`
-- 响应：`{ ok: true, deleted: number, missing: string[] }`
+### 6.6 deleteElement (write)
+- Parameters: `{ ids: string | string[], boardId? }`
+- Response: `{ ok: true, deleted: number, missing: string[] }`
 
-### 6.7 replaceBoard（写）
-- 参数：`{ elements: Element[], boardId?, source? }`
-- 响应：`{ ok: true, replaced: number }`
-- 说明：**自动快照**（上限 20，供还原）。
+### 6.7 replaceBoard (write)
+- Parameters: `{ elements: Element[], boardId?, source? }`
+- Response: `{ ok: true, replaced: number }`
+- Notes: **auto-snapshot** (limit 20, restorable).
 
-### 6.8 createBoard（写）
-- 参数：`{ name?, parentId?, elements?, source? }`
-- 响应：`{ ok: true, boardId, name, added: number }`
-- 说明：直写存储（不切画布）；`parentId` 必须是文件夹，否则 `PARENT_NOT_FOLDER`。
+### 6.8 createBoard (write)
+- Parameters: `{ name?, parentId?, elements?, source? }`
+- Response: `{ ok: true, boardId, name, added: number }`
+- Notes: writes straight to storage (without switching the canvas); `parentId` must be a folder, otherwise `PARENT_NOT_FOLDER`.
 
-### 6.9 deleteBoard（写）
-- 参数：`{ boardId }`（**必填**）
-- 响应：`{ ok: true, deleted: 1, boardId, name, trashed: true }`
-- 说明：**软删除**（进入回收站，可在应用内还原）。约束：只接受画板（文件夹请在应用内操作）；**拒绝删除当前正打开的画板**（需先切换）。`--dir` 绑定暂不支持 → 返回 `unsupported`。
+### 6.9 deleteBoard (write)
+- Parameters: `{ boardId }` (**required**)
+- Response: `{ ok: true, deleted: 1, boardId, name, trashed: true }`
+- Notes: **soft delete** (moves to trash, restorable in the app). Constraints: boards only (folders are handled in the app); **refuses to delete the currently open board** (switch first). Not supported under `--dir` → returns `unsupported`.
 
-### 6.10 fromMermaid（写）
-- 参数：`{ mermaid: string, boardId?, opts?: { replace?, fontSize? }, source? }`
-- 响应：`{ ok: true, replaced|added, fromMermaid: true, files?: number }`
-- 说明：Mermaid 源码 → 原生可编辑图元；`opts.replace` 为整板替换（自动快照），否则追加。`source.kind` 自动置 `"mermaid"`。
-- **依赖注**：需要可选依赖 `@excalidraw/mermaid-to-excalidraw`。缺失时（如 `--dir` 未安装）返回**可读的行动提示**（建议改走 `--relay`）。
-- 错误：`MERMAID_PARSE_FAILED`
+### 6.10 fromMermaid (write)
+- Parameters: `{ mermaid: string, boardId?, opts?: { replace?, fontSize? }, source? }`
+- Response: `{ ok: true, replaced|added, fromMermaid: true, files?: number }`
+- Notes: Mermaid source → native editable elements; `opts.replace` replaces the whole board (auto-snapshot), otherwise it appends. `source.kind` is set to `"mermaid"` automatically.
+- **Dependency note**: requires the optional `@excalidraw/mermaid-to-excalidraw`. When missing (e.g. under `--dir`) it returns an **actionable hint** suggesting `--relay` instead.
+- Errors: `MERMAID_PARSE_FAILED`
 
-### 6.11 setMetadata（写）
-- 参数：`{ boardId?, metadata: { status?, version?, history?, comments? } }`
-  - `status?`：状态字符串（如 `draft` / `review` / `done`）
-  - `version?`：自增版本号（number）
-  - `history?`：**整段替换**的版本历史数组 `{ ts, version, note? }[]`
-  - `comments?`：**整段替换**的批注数组
-- 响应：`{ ok: true, boardId }`
-- 说明：元数据合并写回 `tree.json` 的 `FileNode`。仅 `--dir` 绑定实现；`--relay` 下返回
-  `{ ok: false, error: "metadata unsupported in this runtime" }` → `EXEC_FAILED`。
-- `--dir` 模式请**始终显式传 `boardId`**（该模式无「当前画板」上下文）。
-- 错误：`EXEC_FAILED`
+### 6.11 setMetadata (write)
+- Parameters: `{ boardId?, metadata: { status?, version?, history?, comments? } }`
+  - `status?`: a status string (e.g. `draft` / `review` / `done`)
+  - `version?`: an incrementing version number
+  - `history?`: an array of `{ ts, version, note? }` — **replaced wholesale**
+  - `comments?`: a comments array — **replaced wholesale**
+- Response: `{ ok: true, boardId }`
+- Notes: metadata is merged back into the `FileNode` of `tree.json`. Implemented only under `--dir`; under `--relay` it returns
+  `{ ok: false, error: "metadata unsupported in this runtime" }` → `EXEC_FAILED`.
+- In `--dir` mode **always pass `boardId` explicitly** (there is no "current board" context).
+- Errors: `EXEC_FAILED`
 
 ---
 
-## 7. 错误码
+## 7. Error codes
 
-| code | 含义 | HTTP 类比 |
+| code | Meaning | HTTP analogue |
 |---|---|---|
-| `BAD_TOKEN` | token 不匹配 / 未授权 | 401 |
-| `BAD_TYPE` | 信封或命令体畸形（如缺失 `cmd`） | 400 |
-| `UNKNOWN_CMD` | 命令不在白名单 | 404 |
-| `BOARD_NOT_FOUND` | `boardId` 指向不存在的画板 | 404 |
-| `PARENT_NOT_FOLDER` | `createBoard.parentId` 不是文件夹 | 400 |
-| `MERMAID_PARSE_FAILED` | Mermaid 解析失败 / 空内容 | 422 |
-| `PROTOCOL_UNSUPPORTED` | `kbProtocol` 协商失败 | 426 |
-| `EXEC_FAILED` | 执行期未归类异常 / 当前运行时不支持的能力 | 500 |
+| `BAD_TOKEN` | token mismatch / unauthorized | 401 |
+| `BAD_TYPE` | malformed envelope or command body (e.g. missing `cmd`) | 400 |
+| `UNKNOWN_CMD` | command not on the allow-list | 404 |
+| `BOARD_NOT_FOUND` | `boardId` points to a non-existent board | 404 |
+| `PARENT_NOT_FOLDER` | `createBoard.parentId` is not a folder | 400 |
+| `MERMAID_PARSE_FAILED` | Mermaid parse failure / empty input | 422 |
+| `PROTOCOL_UNSUPPORTED` | `kbProtocol` negotiation failed | 426 |
+| `EXEC_FAILED` | unclassified execution error / capability unavailable in this runtime | 500 |
 
-错误响应统一为：`{ kbProtocol, requestId, ok: false, error: { code, message } }`。
-
----
-
-## 8. 数据边界
-
-> **画板数据（JSON）不会离开本机。** 本协议的任何命令都不把画板内容传到远程服务器。
-
-- `--dir` 模式：服务端进程直读直写你指定的本地目录，无中继、无上行。
-- `--relay` 模式：中继仅监听 `127.0.0.1` 本地环回，不暴露公网，只用于同机通信。
-- 无需账号、无需登录；不提供任何「自动把画板数据上传服务器」的能力。
+Error responses are always: `{ kbProtocol, requestId, ok: false, error: { code, message } }`.
 
 ---
 
-## 附录 A · 命令 → 工具名 → 实现位置
+## 8. Data boundary
 
-| cmd | MCP 工具名 | 实现位置 |
+> **Board data (JSON) never leaves your machine.** No command in this protocol uploads board content to a remote server.
+
+- `--dir` mode: the server reads and writes the local directory you specify — no relay, no outbound traffic.
+- `--relay` mode: the relay listens on **loopback only** (`127.0.0.1`) and is never exposed publicly; it is used solely for same-machine communication.
+- No account and no sign-in; there is no "automatically upload board data" capability.
+
+---
+
+## Appendix A · Command → tool name → implementation
+
+| cmd | MCP tool | Implementation |
 |---|---|---|
 | getBoard | `kbfs_get_board` | `core/executor.ts` |
-| getScreenshot | `kbfs_get_screenshot` | `core/executor.ts`（`--dir` 返回 `EXEC_FAILED`） |
+| getScreenshot | `kbfs_get_screenshot` | `core/executor.ts` (returns `EXEC_FAILED` under `--dir`) |
 | listBoards | `kbfs_list_boards` | `core/executor.ts` |
 | addElement | `kbfs_add_element` | `core/executor.ts` |
 | patchElement | `kbfs_patch_element` | `core/executor.ts` |
@@ -261,5 +263,5 @@
 | createBoard | `kbfs_create_board` | `core/executor.ts` |
 | deleteBoard | `kbfs_delete_board` | `core/executor.ts` |
 | fromMermaid | `kbfs_from_mermaid` | `core/executor.ts` |
-| setMetadata | `kbfs_set_metadata` | `core/executor.ts`（`--dir` 实现；`--relay` 返回 `EXEC_FAILED`） |
+| setMetadata | `kbfs_set_metadata` | `core/executor.ts` (implemented under `--dir`; `EXEC_FAILED` under `--relay`) |
 | listCapabilities | `kbfs_list_capabilities` | `server/protocol.ts` |
