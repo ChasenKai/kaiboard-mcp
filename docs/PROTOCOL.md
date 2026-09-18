@@ -93,6 +93,16 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
 
 > **Do not hard-code `kbProtocol` from examples.** The version shown in snippets is illustrative. Either omit it, or pass the version your client was built against — the server only checks the major component.
 
+**What counts as a breaking change** (the only reason the major version moves):
+
+- removing or renaming a command / tool, or a required parameter
+- changing what an existing parameter *means* (same name, different semantics)
+- removing a response field, or changing a field's type
+- making a previously optional field required
+- changing default behaviour (a call that omits a parameter now behaves differently)
+
+**Not breaking** (ships in a minor/patch release, no `kbProtocol` change): adding a command, adding an optional parameter, adding a response field, bug fixes, wording, performance work.
+
 
 ---
 

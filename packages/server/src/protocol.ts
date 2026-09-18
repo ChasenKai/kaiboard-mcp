@@ -29,7 +29,8 @@ export const COMMANDS: AgentCmd[] = [
  * - 主版本不同（如 "2.0"、"0.1.1"）→ PROTOCOL_UNSUPPORTED
  *
  * 这样包版本在小版本/patch 上迭代时不会打断既有客户端 —— 只有真正的
- * 不兼容变更才提升 kbProtocol 主版本号（见 internal/VERSION-COVENANT.md）。
+ * 不兼容变更（删改/重命名命令、改变参数含义、把可选字段改为必填、改默认行为）
+ * 才提升 kbProtocol 主版本号。协议文档见仓库 docs/PROTOCOL.md §2。
  */
 export function kbProtocolMajor(v: string): string {
   return String(v).trim().split(".")[0] || "";
