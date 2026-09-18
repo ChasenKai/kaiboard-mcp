@@ -163,6 +163,10 @@ async function main() {
     // 错误 kbProtocol → PROTOCOL_UNSUPPORTED
     const bad = await client.callTool("kbfs_get_board", { requestId: "R12", kbProtocol: "0.9.0", boardId: bid });
     check("错误 kbProtocol→PROTOCOL_UNSUPPORTED", bad.ok === false && bad.error?.code === "PROTOCOL_UNSUPPORTED", JSON.stringify(bad));
+
+    // 同主版本（1.x）应兼容放行 —— 协议轴与包版本解耦
+    const sameMajor = await client.callTool("kbfs_get_board", { requestId: "R13", kbProtocol: "1.3", boardId: bid });
+    check("同主版本 kbProtocol(1.3)→放行", sameMajor.ok === true, JSON.stringify(sameMajor));
   } finally {
     await client.close();
     await rm(root, { recursive: true, force: true });

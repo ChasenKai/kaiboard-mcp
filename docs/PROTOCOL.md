@@ -2,8 +2,9 @@
 
 **English** | [简体中文](./PROTOCOL.zh-CN.md) · [README](../README.md) · [Changelog](../CHANGELOG.md)
 
-> **STATUS**: This is the authoritative protocol document for `@kaibuddy/kaiboard-mcp`, in effect as of `v0.1.1`.
-> Version source of truth: the `version` field in `packages/server/package.json`. The protocol version is **independent of the KaiBoard app version**.
+> **STATUS**: This is the authoritative protocol document for `@kaibuddy/kaiboard-mcp`.
+> Package version source of truth: the `version` field in `packages/server/package.json`. The protocol identifier `kbProtocol` is **an independent axis** — see §2.
+> Also **independent of the KaiBoard app version**.
 >
 > Anchored to real code (read from source and exercised by tests, not inferred):
 > - Commands: `packages/core/src/executor.ts`
@@ -34,7 +35,7 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
 
 ```jsonc
 {
-  "kbProtocol": "0.1.1",   // optional: omit to let the server assume its default; supply it to negotiate (see §2)
+  "kbProtocol": "1.0",     // optional: omit to let the server assume its default; supply it to negotiate (see §2)
   "requestId": "uuid-v4",  // optional: the server generates one if omitted (losing idempotent replay, see §3)
   "cmd": "getBoard",       // one of the commands (see §6); MCP tool names in §1.4
   "token": "24-hex",       // omittable in --dir mode (purely local); required for relay mode
@@ -46,14 +47,14 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
 
 ```jsonc
 {
-  "kbProtocol": "0.1.1",
+  "kbProtocol": "1.0",
   "requestId": "uuid-v4",  // echoed back so the client can pair it
   "ok": true,
   "result": { /* command-specific */ }
 }
 // or on failure:
 {
-  "kbProtocol": "0.1.1",
+  "kbProtocol": "1.0",
   "requestId": "uuid-v4",
   "ok": false,
   "error": { "code": "BOARD_NOT_FOUND", "message": "..." }
@@ -80,13 +81,18 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
 
 ## 2. Version negotiation
 
-`kbProtocol` follows the version of `@kaiboard/mcp-server` (it is not a third version axis; it is distinct from the MCP protocol version `2024-11-05`).
+`kbProtocol` is **an independent protocol axis, decoupled from the package version**. It is also distinct from the MCP protocol version (`2024-11-05`), which follows the official MCP SDK.
 
-- Clients **may omit** `kbProtocol` (the server assumes its default, for lenient onboarding).
+- **Compatibility rule: same major version = compatible.** Any `1.x` client is accepted by a `1.x` server.
+- Clients **may omit** `kbProtocol` (the server assumes its current default, for lenient onboarding).
 - If supplied:
-  - matching the current version (`0.1.1`) → execute normally;
-  - any other value (e.g. `0.9.0`) → `error.code = "PROTOCOL_UNSUPPORTED"`.
-- Compatibility rule: within a minor line (`1.x`) commands and optional fields may be added; only a major bump (`2.0`) may remove or change breaking fields.
+  - same major version as the server (e.g. client `1.0` or `1.3` against server `1.0`) → execute normally;
+  - a different major version (e.g. `2.0`, or the pre-1.0 value `0.1.1`) → `error.code = "PROTOCOL_UNSUPPORTED"`.
+- **Minor and patch releases never break clients.** Adding a command or an optional field does *not* bump the `kbProtocol` major version, so package upgrades within `0.x`/`1.x` are safe for existing integrations.
+- A **major** bump (e.g. `1.x` → `2.0`) is reserved for genuine breaking changes — removing or renaming a command, changing a parameter's meaning, or making an optional field required.
+
+> **Do not hard-code `kbProtocol` from examples.** The version shown in snippets is illustrative. Either omit it, or pass the version your client was built against — the server only checks the major component.
+
 
 ---
 
@@ -105,7 +111,7 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
 
 ```jsonc
 {
-  "kbProtocol": "0.1.1",
+  "kbProtocol": "1.0",
   "commands": [                      // command allow-list (11 entries)
     "getBoard", "getScreenshot", "listBoards", "addElement",
     "patchElement", "deleteElement", "replaceBoard", "createBoard",
@@ -114,7 +120,7 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
   "storageModes": ["idb", "fs", "dir", "relay"],
   "activeStorageMode": "relay",       // the binding actually in effect
   "snapshot": { "max": 20 },          // replaceBoard auto-snapshot limit
-  "serverInfo": { "name": "kaiboard-mcp", "version": "0.1.1" },
+  "serverInfo": { "name": "kaiboard-mcp", "version": "<package version>" },
   "relayAvailable": true,             // whether the relay process is up
   "dirAvailable": false,              // whether the offline folder backend is available
   "pageConnected": true,              // whether a KaiBoard page is actually connected

@@ -1,6 +1,6 @@
 {
   "name": "@kaibuddy/kaiboard-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "mcpName": "io.github.ChasenKai/kaiboard-mcp",
   "description": "KaiBoard MCP server: let AI agents draw on your local KaiBoard whiteboards over stdio JSON-RPC. --relay drives the live board; --dir works in a local folder.",
   "keywords": [
@@ -46,7 +46,7 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
-    "@kaibuddy/kaiboard-core": "^0.1.1"
+    "@kaibuddy/kaiboard-core": "^0.2.0"
   },
   "peerDependencies": {
     "@excalidraw/excalidraw": "*",

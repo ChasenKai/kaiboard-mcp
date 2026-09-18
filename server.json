@@ -3,7 +3,7 @@
   "name": "io.github.ChasenKai/kaiboard-mcp",
   "title": "KaiBoard MCP",
   "description": "Let AI agents draw on your local-first KaiBoard whiteboards (relay or local folder).",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "repository": {
     "url": "https://github.com/ChasenKai/kaiboard-mcp",
     "source": "github"
@@ -12,7 +12,7 @@
     {
       "registryType": "npm",
       "identifier": "@kaibuddy/kaiboard-mcp",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },

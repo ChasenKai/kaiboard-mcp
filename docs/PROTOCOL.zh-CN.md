@@ -2,8 +2,9 @@
 
 [English](./PROTOCOL.md) | **简体中文**
 
-> **STATUS**：本文件是 `@kaibuddy/kaiboard-mcp` 的**权威协议文档**，随首发版（v0.1.1）生效。
-> 版本真源：`packages/server/package.json` 的 `version`；协议版本与 KaiBoard 应用版本**相互独立**。
+> **STATUS**：本文件是 `@kaibuddy/kaiboard-mcp` 的**权威协议文档**。
+> 包版本真源：`packages/server/package.json` 的 `version`；协议标识 `kbProtocol` 是**独立的版本轴**，详见 §2。
+> 协议版本同样与 KaiBoard 应用版本**相互独立**。
 >
 > 锚定依据（均实读源码 + 实测，非推测）：
 > - 命令真源：`packages/core/src/executor.ts`
@@ -34,7 +35,7 @@
 
 ```jsonc
 {
-  "kbProtocol": "0.1.1",   // 可选：不填则服务端按默认版本处理；填则参与协商（见 §2）
+  "kbProtocol": "1.0",     // 可选：不填则服务端按默认版本处理；填则参与协商（见 §2）
   "requestId": "uuid-v4",  // 可选：不填由服务端生成（将失去幂等回放能力，见 §3）
   "cmd": "getBoard",       // 命令之一（见 §6）；MCP 工具名见 §1.4
   "token": "24-hex",       // --dir 模式可省略（本地无远程）；relay 模式必填
@@ -46,14 +47,14 @@
 
 ```jsonc
 {
-  "kbProtocol": "0.1.1",
+  "kbProtocol": "1.0",
   "requestId": "uuid-v4",  // 原样回显，供客户端配对
   "ok": true,
   "result": { /* 命令专属 */ }
 }
 // 或失败：
 {
-  "kbProtocol": "0.1.1",
+  "kbProtocol": "1.0",
   "requestId": "uuid-v4",
   "ok": false,
   "error": { "code": "BOARD_NOT_FOUND", "message": "..." }
@@ -80,13 +81,18 @@
 
 ## 2. 版本协商
 
-`kbProtocol` 跟随 `@kaibuddy/kaiboard-mcp` 的版本号（不单列第三根版本轴；区别于 MCP 通用版本 `2024-11-05`）。
+`kbProtocol` 是**独立于包版本的协议轴**（与 `@kaibuddy/kaiboard-mcp` 的版本号解耦）；也区别于跟随官方 MCP SDK 的通用协议版本 `2024-11-05`。
 
-- 客户端**可省略** `kbProtocol`（服务端按默认版本处理，便于宽松接入）。
+- **兼容规则：主版本号一致即兼容。** 服务端为 `1.x` 时，任何 `1.x` 客户端都被接受。
+- 客户端**可省略** `kbProtocol`（服务端按当前默认处理，便于宽松接入）。
 - 若携带：
-  - 命中当前版本（`0.1.1`）→ 正常执行；
-  - 其它值（如 `0.9.0`）→ `error.code = "PROTOCOL_UNSUPPORTED"`。
-- 兼容规则：次版本（`1.x`）内可加命令、可加可选字段；主版本变更（`2.0`）才允许删改破坏性字段。
+  - 与服务端主版本一致（如客户端 `1.0` / `1.3`，服务端 `1.0`）→ 正常执行；
+  - 主版本不同（如 `2.0`，或 1.0 之前的取值 `0.1.1`）→ `error.code = "PROTOCOL_UNSUPPORTED"`。
+- **次版本 / 修订版本升级不会打断客户端。** 新增命令、新增可选字段都**不**提升 `kbProtocol` 主版本 —— 因此包版本在 `0.x` / `1.x` 内迭代对既有接入是安全的。
+- **主版本**提升（如 `1.x` → `2.0`）只保留给真正的不兼容变更：删除或重命名命令、改变参数含义、把可选字段改为必填。
+
+> **不要照抄示例里的 `kbProtocol` 数值。** 代码片段中的版本只是示意。可以省略不填；若填，填你的客户端开发时对应的版本即可 —— 服务端只校验主版本号。
+
 
 ---
 
@@ -105,7 +111,7 @@
 
 ```jsonc
 {
-  "kbProtocol": "0.1.1",
+  "kbProtocol": "1.0",
   "commands": [                      // 命令白名单（11 条）
     "getBoard", "getScreenshot", "listBoards", "addElement",
     "patchElement", "deleteElement", "replaceBoard", "createBoard",
@@ -114,7 +120,7 @@
   "storageModes": ["idb", "fs", "dir", "relay"],
   "activeStorageMode": "relay",       // 当前实际生效的绑定
   "snapshot": { "max": 20 },          // replaceBoard 自动快照上限
-  "serverInfo": { "name": "kaiboard-mcp", "version": "0.1.1" },
+  "serverInfo": { "name": "kaiboard-mcp", "version": "<包版本>" },
   "relayAvailable": true,             // 中继进程是否已起
   "dirAvailable": false,              // 离线文件夹后端是否可用
   "pageConnected": true,              // 是否真的有 KaiBoard 页面连着

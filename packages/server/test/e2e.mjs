@@ -179,6 +179,18 @@ async function partB() {
     const bad = await srv.callTool("kbfs_get_board", { requestId: "R2", kbProtocol: "0.9.0", boardId: bid });
     check("kbProtocol 协商拒绝→PROTOCOL_UNSUPPORTED", bad.ok === false && bad.error?.code === "PROTOCOL_UNSUPPORTED", JSON.stringify(bad));
 
+    // 主版本一致即兼容（解耦后的新规则）：客户端可用同主版本的任意次版本
+    const sameMajor = await srv.callTool("kbfs_get_board", { requestId: "R2b", kbProtocol: "1.3", boardId: bid });
+    check("kbProtocol 同主版本(1.3)兼容放行", sameMajor.ok === true, JSON.stringify(sameMajor));
+
+    // 省略 kbProtocol 仍应放行（宽松接入）
+    const omitted = await srv.callTool("kbfs_get_board", { requestId: "R2c", boardId: bid });
+    check("kbProtocol 省略时放行", omitted.ok === true, JSON.stringify(omitted));
+
+    // 主版本不同（2.x）必须拒绝
+    const majorBump = await srv.callTool("kbfs_get_board", { requestId: "R2d", kbProtocol: "2.0", boardId: bid });
+    check("kbProtocol 主版本不同(2.0)拒绝", majorBump.ok === false && majorBump.error?.code === "PROTOCOL_UNSUPPORTED", JSON.stringify(majorBump));
+
     // 先种一个元素使画板非空：空板 getScreenshot 返回 empty:true 属正常成功（无需渲染），
     // 只有「非空板 + 无 canvas(--dir)」才应回 EXEC_FAILED(screenshot unsupported)，这才是 R1 要验的路径。
     const seed = await srv.callTool("kbfs_add_element", {

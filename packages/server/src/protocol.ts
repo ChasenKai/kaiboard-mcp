@@ -1,9 +1,11 @@
 // @kaibuddy/kaiboard-mcp —— 协议信封与错误码映射（协议 §1/§2/§8）
 import type { AgentCmd } from "@kaibuddy/kaiboard-core";
 
-export const KB_PROTOCOL = "0.1.1";
+// kbProtocol 是**独立于包版本**的协议轴：只在接口发生不兼容变更时才提升主版本号。
+// 包版本可以一路涨（0.2.0 → 0.9.0），kbProtocol 保持 "1.0" 不变，老客户端不受影响。
+export const KB_PROTOCOL = "1.0";
 export const SERVER_NAME = "kaiboard-mcp";
-export const SERVER_VERSION = "0.1.1"; // 应与本包 package.json 同步
+export const SERVER_VERSION = "0.2.0"; // 应与本包 package.json 同步
 
 export const COMMANDS: AgentCmd[] = [
   "getBoard",
@@ -19,16 +21,31 @@ export const COMMANDS: AgentCmd[] = [
   "setMetadata",
 ];
 
-/** kbProtocol 协商（§2）：当前仅 0.1.1。缺失=默认接受；其它值→不支持。 */
+/**
+ * kbProtocol 协商（§2）——**主版本号一致即兼容**。
+ *
+ * - 缺失 → 接受（服务端按当前默认处理，便于宽松接入）
+ * - 主版本一致（如客户端 "1.0" / "1.3"，服务端 "1.0"）→ 接受
+ * - 主版本不同（如 "2.0"、"0.1.1"）→ PROTOCOL_UNSUPPORTED
+ *
+ * 这样包版本在小版本/patch 上迭代时不会打断既有客户端 —— 只有真正的
+ * 不兼容变更才提升 kbProtocol 主版本号（见 internal/VERSION-COVENANT.md）。
+ */
+export function kbProtocolMajor(v: string): string {
+  return String(v).trim().split(".")[0] || "";
+}
+
 export function negotiate(
   kbProtocol?: string,
 ): { ok: true } | { ok: false; code: "PROTOCOL_UNSUPPORTED"; message: string } {
   if (!kbProtocol) return { ok: true };
-  if (kbProtocol === KB_PROTOCOL) return { ok: true };
+  const clientMajor = kbProtocolMajor(kbProtocol);
+  const serverMajor = kbProtocolMajor(KB_PROTOCOL);
+  if (clientMajor && clientMajor === serverMajor) return { ok: true };
   return {
     ok: false,
     code: "PROTOCOL_UNSUPPORTED",
-    message: `kbProtocol ${kbProtocol} not supported; server supports ${KB_PROTOCOL}`,
+    message: `kbProtocol ${kbProtocol} not supported; server supports ${KB_PROTOCOL} (compatible major: ${serverMajor}.x)`,
   };
 }
 

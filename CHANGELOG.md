@@ -1,28 +1,18 @@
 # 变更日志 / Changelog
 
-> 所有重要变更记录在此文件。每条变更**英文在上、中文在下**，对照阅读。
-> All notable changes are documented in this file. Each entry is written **in English first, then in Chinese**, so the two can be read side by side.
+> 面向用户 / 随开源发布包一起看的版本变更记录。
+> User-facing version history, shipped with the open-source release.
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/spec/v2.0.0.html)。
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased] / [未发布]
+## [0.2.0] - 2026-09-18 · 首个公开发布版 / First public release
 
-## [0.1.1] - 2026-09-17
-
-### Changed / 变更
-
-- **Bilingual user-facing strings.** CLI usage, MCP tool descriptions, and the `--dir` / relay notices now render in **English + Chinese** (previously Chinese only), matching the English README and protocol document. Tool descriptions are read by agents through `tools/list`.
-
-  **对外文案改为英文 + 中文双语。** CLI 用法、MCP 工具描述以及 `--dir` / 中继的提示信息现在同时提供英文与中文（此前仅中文），与英文的 README 和协议文档保持一致。工具描述会经 `tools/list` 交给 Agent 读取。
-
-## [0.1.0] - 2026-09-17
+首个公开发布版本。`0.x` 表示 API 在次版本之间仍可能变化；`1.0.0` 才代表稳定性承诺。
 
 First public release. `0.x` means the API may still change between minor versions; `1.0.0` will mark the stability commitment.
-
-首次公开发布。`0.x` 表示 API 在次版本之间仍可能变化；`1.0.0` 才代表稳定性承诺。
 
 ### Added / 新增
 
@@ -62,6 +52,14 @@ First public release. `0.x` means the API may still change between minor version
 
   能力在当前运行时不支持时**显式降级而非失败**（`--dir` 下的 `kbfs_get_screenshot`、`kbfs_from_mermaid`、`kbfs_set_metadata`）。
 
-[Unreleased]: https://github.com/ChasenKai/kaiboard-mcp/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/ChasenKai/kaiboard-mcp/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/ChasenKai/kaiboard-mcp/releases/tag/v0.1.0
+- Bilingual operation: CLI usage, MCP tool descriptions, and notices are rendered in **English + Chinese**, so agents and users on either language see the same guidance.
+
+  双语运行：CLI 用法、MCP 工具描述与提示信息均以**英文 + 中文**呈现，让不同语言的 Agent 与用户看到一致的说明。
+
+### Compatibility / 兼容性
+
+- `kbProtocol` is an **independent protocol axis**, decoupled from the package version. **Same major version = compatible**: a `1.x` client works against any `1.x` server, and minor/patch upgrades never break existing integrations. See [`docs/PROTOCOL.md` §2](./docs/PROTOCOL.md).
+
+  `kbProtocol` 是**独立于包版本的协议轴**。**主版本号一致即兼容**：`1.x` 客户端可对接任意 `1.x` 服务端，次版本 / 修订版本升级不会打断既有接入。见 [`docs/PROTOCOL.zh-CN.md` §2](./docs/PROTOCOL.zh-CN.md)。
+
+[0.2.0]: https://github.com/ChasenKai/kaiboard-mcp/releases/tag/v0.2.0
