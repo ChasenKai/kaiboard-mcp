@@ -322,9 +322,14 @@ export async function executeCommand(
         const id = d.nodeId || d.boardId || d.folderId;
         if (!id) return { ok: false, error: "restoreNode requires nodeId" };
         if (typeof adapter.restoreNode === "function") {
+          // 先校验：节点必须存在、且确实在回收站里。
+          // 底层 restoreNode 对未知 id 是「静默返回」，若不校验会误报成功（E2E 实测过）。
+          const node = await adapter.getNode(id);
+          if (!node) return { ok: false, error: "node not found: " + id };
+          if (!node.deletedAt) return { ok: false, error: "node is not in trash: " + id };
           await adapter.restoreNode(id);
-          onActivity("Agent 共绘：已从回收站还原一项");
-          return { ok: true, restored: 1, nodeId: id };
+          onActivity(`Agent 共绘：已从回收站还原「${node.name}」`);
+          return { ok: true, restored: 1, nodeId: id, name: node.name };
         }
         return { ok: false, error: "unsupported: current storage backend cannot restore from trash" };
       }
