@@ -14,7 +14,7 @@ export function genElementId(): string {
  * （`gen_excalidraw.py` 的 spec 键、Agent 手写的 elements 都是），
  * 而 **Excalidraw 真正渲染读的是 `backgroundColor` / `strokeColor`**。
  * 不做映射时，Agent 传的填充色只会作为一个陌生字段存在元素上，
- * 形状在画布上渲染成**透明无填充**（2026-09-16 由截图实测确认）。
+ * 形状在画布上渲染成**透明无填充**。
  * 生成器侧早就有这层映射（spec `fill` → element `backgroundColor`），
  * 唯独 MCP 协议链路缺了它——本文件是两端共用的命令内核（页面 relay 与 --dir 服务端），
  * 所以在这里补一次即可同时修复两条链。

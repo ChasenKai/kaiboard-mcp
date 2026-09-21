@@ -1,4 +1,4 @@
-// @kaibuddy/kaiboard-core —— 快照（数据安全 / P0-1），存储走 StorageAdapter.getSetting
+// @kaibuddy/kaiboard-core —— 快照（数据安全），存储走 StorageAdapter.getSetting
 
 import type { StorageAdapter, Snapshot } from "./types.js";
 

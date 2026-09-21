@@ -57,6 +57,7 @@ const TOOLS = [
         ids: { type: "array" },
         name: { type: "string" },
         parentId: { type: "string" },
+        folderId: { type: "string" },
         mermaid: { type: "string" },
         source: { type: "object" },
         opts: { type: "object" },

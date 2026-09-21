@@ -60,7 +60,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
   let pendingCmd: any = null;
   let pendingResp: any = null;
   /**
-   * P2-1 命令路由（2026-08-29）：waiter 记录该页面「当前打开的画板」。
+   * 命令路由：waiter 记录该页面「当前打开的画板」。
    * 派发带 boardId 的命令时优先给匹配的页面，避免被别的标签页接走。
    * board 为 null = 老版本页面未上报（向后兼容，走原有"先到先得"逻辑）。
    */
@@ -136,7 +136,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
         lastSeenAt: lastClientSeenAt,
         folder: lastFolder,
         waiters: cmdWaiters.length,
-        // P2-1：每个等待中的页面各自打开着哪块板（null = 未上报的老版本页面）。
+        // 每个等待中的页面各自打开着哪块板（null = 未上报的老版本页面）。
         // 用途：Agent 可判断「目标板是否正被某个页面打开」→ 走哪条写入路径、要不要提醒用户。
         waiterBoards: cmdWaiters.map((x) => x.board),
         windowMs: CLIENT_SEEN_WINDOW_MS,
@@ -146,7 +146,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
     if (req.method === "POST" && url.pathname === "/cmd") {
       readBody(req, (b) => {
         pendingCmd = b;
-        // P2-1 路由：命令带 boardId 时，优先派发给「当前正打开这块板」的页面；
+        // 路由：命令带 boardId 时，优先派发给「当前正打开这块板」的页面；
         // 没有匹配（或老页面未上报 board）则退回原有行为（取队首）。
         const want = b && typeof b.boardId === "string" && b.boardId ? b.boardId : null;
         let idx = want ? cmdWaiters.findIndex((x) => x.board === want) : -1;
@@ -177,7 +177,7 @@ export function startRelay(opts?: { port?: number; token?: string }): RelayHandl
         if (i >= 0) cmdWaiters.splice(i, 1);
         empty(res);
       }, 20000);
-      // P2-1：页面在长轮询 URL 上上报自己当前打开的画板（?board=xxx），
+      // 页面在长轮询 URL 上上报自己当前打开的画板（?board=xxx），
       // 供 POST /cmd 按 boardId 路由。老版本页面不带此参数 → board=null，行为不变。
       const w: CmdWaiter = {
         fn: (c: any) => {

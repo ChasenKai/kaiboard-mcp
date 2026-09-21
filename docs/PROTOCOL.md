@@ -125,6 +125,7 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
   "commands": [                      // command allow-list (11 entries)
     "getBoard", "getScreenshot", "listBoards", "addElement",
     "patchElement", "deleteElement", "replaceBoard", "createBoard",
+    "createFolder", "renameBoard", "renameFolder",
     "deleteBoard", "fromMermaid", "setMetadata"
   ],
   "storageModes": ["idb", "fs", "dir", "relay"],
@@ -236,6 +237,23 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
 - In `--dir` mode **always pass `boardId` explicitly** (there is no "current board" context).
 - Errors: `EXEC_FAILED`
 
+### 6.12 createFolder (write)
+- Parameters: `{ name: string, parentId? }`
+- Response: `{ ok: true, folderId, name, parentId }`
+- Notes: creates a **folder** node in the tree (no board data written). `parentId` must be an existing folder, otherwise `PARENT_NOT_FOLDER`.
+  Omit `parentId` (or pass `null`) to create at the root level.
+
+### 6.13 renameBoard (write)
+- Parameters: `{ boardId: string, name: string }` — **both required**
+- Response: `{ ok: true, boardId, name, previousName }`
+- Notes: changes only `name` (+ `updatedAt`); `parentId`, `order`, board content and trash state are untouched.
+  Passing a **folder** id returns `BAD_TYPE` with an actionable hint (`not a board (use renameFolder)`).
+
+### 6.14 renameFolder (write)
+- Parameters: `{ folderId: string, name: string }` — **both required**
+- Response: `{ ok: true, folderId, name, previousName }`
+- Notes: same semantics as `renameBoard`, for folders. Passing a **board** id returns `BAD_TYPE` (`not a folder (use renameBoard)`).
+
 ---
 
 ## 7. Error codes
@@ -243,9 +261,9 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
 | code | Meaning | HTTP analogue |
 |---|---|---|
 | `BAD_TOKEN` | token mismatch / unauthorized | 401 |
-| `BAD_TYPE` | malformed envelope or command body (e.g. missing `cmd`) | 400 |
+| `BAD_TYPE` | malformed envelope or command body (e.g. missing `cmd` / missing `name` / wrong node kind) | 400 |
 | `UNKNOWN_CMD` | command not on the allow-list | 404 |
-| `BOARD_NOT_FOUND` | `boardId` points to a non-existent board | 404 |
+| `BOARD_NOT_FOUND` | the referenced `boardId` / `folderId` does not exist | 404 |
 | `PARENT_NOT_FOLDER` | `createBoard.parentId` is not a folder | 400 |
 | `MERMAID_PARSE_FAILED` | Mermaid parse failure / empty input | 422 |
 | `PROTOCOL_UNSUPPORTED` | `kbProtocol` negotiation failed | 426 |
@@ -277,6 +295,9 @@ Error responses are always: `{ kbProtocol, requestId, ok: false, error: { code, 
 | deleteElement | `kbfs_delete_element` | `core/executor.ts` |
 | replaceBoard | `kbfs_replace_board` | `core/executor.ts` |
 | createBoard | `kbfs_create_board` | `core/executor.ts` |
+| createFolder | `kbfs_create_folder` | `core/executor.ts` |
+| renameBoard | `kbfs_rename_board` | `core/executor.ts` |
+| renameFolder | `kbfs_rename_folder` | `core/executor.ts` |
 | deleteBoard | `kbfs_delete_board` | `core/executor.ts` |
 | fromMermaid | `kbfs_from_mermaid` | `core/executor.ts` |
 | setMetadata | `kbfs_set_metadata` | `core/executor.ts` (implemented under `--dir`; `EXEC_FAILED` under `--relay`) |

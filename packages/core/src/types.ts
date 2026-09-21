@@ -46,6 +46,9 @@ export type AgentCmd =
   | "deleteElement"
   | "listBoards"
   | "createBoard"
+  | "createFolder"
+  | "renameBoard"
+  | "renameFolder"
   | "deleteBoard"
   | "fromMermaid"
   | "setMetadata";
@@ -68,9 +71,11 @@ export interface AgentCommand {
   patches?: any[] | any;
   /** deleteElement：要删除的元素 id（数组或单个） */
   ids?: string[] | string;
-  /** createBoard：新画板名 / 目标父文件夹 */
+  /** createBoard：新画板名 / 目标父文件夹；createFolder：新文件夹名 / 目标父文件夹；rename*：新名 */
   name?: string;
   parentId?: string | null;
+  /** renameFolder：目标文件夹 id（renameBoard 用 boardId） */
+  folderId?: string;
   /** fromMermaid：mermaid 源码 */
   mermaid?: string;
   /** setMetadata：画板级元数据包 */
@@ -86,9 +91,9 @@ export interface AgentCommand {
     replace?: boolean;
     fontSize?: number;
     /**
-     * addElement / fromMermaid：跳过「自动下移到已有内容下方」（#41）。
+     * addElement / fromMermaid：跳过「自动下移到已有内容下方」。
      * 用途 = 同一张图内补/改元素时需要**精确落位**——否则新元素会被推到已有内容底边之下，
-     * 落到卡片框外面（实测补 1 条要点 → 跑到卡片右下角）。
+     * 落到卡片框外面（补 1 条要点时会跑到卡片右下角）。
      * 默认 false，保持既有行为，完全向下兼容。
      * **逐命令生效**：每次调用按当前意图单独决定（策略规则见 Skill ）。
      */

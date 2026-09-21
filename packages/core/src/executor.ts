@@ -188,6 +188,66 @@ export async function executeCommand(
       }
 
       /**
+       * createFolder：新建文件夹（name 必填；parentId 缺省 = 根层）。
+       * 与 createBoard 同构，差别只在 node.type = "folder" 且不写画板数据。
+       */
+      case "createFolder": {
+        const nm = (d.name || "").trim();
+        if (!nm) return { ok: false, error: "createFolder requires name" };
+        const parentId = d.parentId ?? null;
+        if (parentId) {
+          const p = await adapter.getNode(parentId);
+          if (!p || p.type !== "folder") return { ok: false, error: "parent folder not found: " + parentId };
+        }
+        const id = crypto.randomUUID();
+        const now = Date.now();
+        const order = (await adapter.getMaxOrder(parentId)) + 1;
+        const node: FileNode = { id, type: "folder", name: nm, parentId, createdAt: now, updatedAt: now, order };
+        await adapter.putNode(node);
+        onActivity(`Agent 共绘：已新建文件夹「${nm}」`);
+        return { ok: true, folderId: id, name: nm, parentId };
+      }
+
+      /**
+       * renameBoard：改画板名（须显式给 boardId）。
+       * 只改 name / updatedAt —— 不动 parentId、order、内容与回收站状态。
+       */
+      case "renameBoard": {
+        const id = d.boardId;
+        const nm = (d.name || "").trim();
+        if (!id) return { ok: false, error: "renameBoard requires boardId" };
+        if (!nm) return { ok: false, error: "renameBoard requires name" };
+        const node = await adapter.getNode(id);
+        if (!node) return { ok: false, error: "board not found: " + id };
+        if (node.type !== "board") return { ok: false, error: "not a board (use renameFolder): " + id };
+        const previousName = node.name;
+        node.name = nm;
+        node.updatedAt = Date.now();
+        await adapter.putNode(node);
+        onActivity(`Agent 共绘：画板「${previousName}」已更名为「${nm}」`);
+        return { ok: true, boardId: id, name: nm, previousName };
+      }
+
+      /**
+       * renameFolder：改文件夹名（须显式给 folderId）。
+       */
+      case "renameFolder": {
+        const id = d.folderId;
+        const nm = (d.name || "").trim();
+        if (!id) return { ok: false, error: "renameFolder requires folderId" };
+        if (!nm) return { ok: false, error: "renameFolder requires name" };
+        const node = await adapter.getNode(id);
+        if (!node) return { ok: false, error: "folder not found: " + id };
+        if (node.type !== "folder") return { ok: false, error: "not a folder (use renameBoard): " + id };
+        const previousName = node.name;
+        node.name = nm;
+        node.updatedAt = Date.now();
+        await adapter.putNode(node);
+        onActivity(`Agent 共绘：文件夹「${previousName}」已更名为「${nm}」`);
+        return { ok: true, folderId: id, name: nm, previousName };
+      }
+
+      /**
        * deleteBoard：软删除画板（进回收站，用户可在 UI 回收站还原）。
        * 安全约束：① 必须显式给 boardId；② 只删 board 类型，文件夹请用 UI；
        * ③ 拒绝删除当前正打开的画板（避免画布仍显示已删内容的状态不一致）。
@@ -209,7 +269,7 @@ export async function executeCommand(
         return { ok: false, error: "unsupported: current storage backend cannot delete boards" };
       }
 
-      /**  / P1：Mermaid → 原生可编辑 Excalidraw 图元。 */
+      /** Mermaid → 原生可编辑 Excalidraw 图元。 */
       case "fromMermaid": {
         const src = (d.mermaid || "").trim();
         if (!src) return { ok: false, error: "empty mermaid" };

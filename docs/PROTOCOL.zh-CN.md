@@ -125,6 +125,7 @@
   "commands": [                      // 命令白名单（11 条）
     "getBoard", "getScreenshot", "listBoards", "addElement",
     "patchElement", "deleteElement", "replaceBoard", "createBoard",
+    "createFolder", "renameBoard", "renameFolder",
     "deleteBoard", "fromMermaid", "setMetadata"
   ],
   "storageModes": ["idb", "fs", "dir", "relay"],
@@ -236,6 +237,23 @@
 - `--dir` 模式请**始终显式传 `boardId`**（该模式无「当前画板」上下文）。
 - 错误：`EXEC_FAILED`
 
+### 6.12 createFolder（写）
+- 参数：`{ name: string, parentId? }`
+- 响应：`{ ok: true, folderId, name, parentId }`
+- 说明：在文件树里建一个**文件夹**节点（不写画板数据）。`parentId` 必须是已存在的文件夹，否则 `PARENT_NOT_FOLDER`。
+  省略 `parentId`（或传 `null`）表示建在根层。
+
+### 6.13 renameBoard（写）
+- 参数：`{ boardId: string, name: string }` —— **两项都必填**
+- 响应：`{ ok: true, boardId, name, previousName }`
+- 说明：只改 `name`（与 `updatedAt`）；不动 `parentId`、`order`、画板内容与回收站状态。
+  若传入的是**文件夹** id，返回 `BAD_TYPE` 并给出可执行提示（`not a board (use renameFolder)`）。
+
+### 6.14 renameFolder（写）
+- 参数：`{ folderId: string, name: string }` —— **两项都必填**
+- 响应：`{ ok: true, folderId, name, previousName }`
+- 说明：语义同 `renameBoard`，作用于文件夹。若传入的是**画板** id，返回 `BAD_TYPE`（`not a folder (use renameBoard)`）。
+
 ---
 
 ## 7. 错误码
@@ -243,9 +261,9 @@
 | code | 含义 | HTTP 类比 |
 |---|---|---|
 | `BAD_TOKEN` | token 不匹配 / 未授权 | 401 |
-| `BAD_TYPE` | 信封或命令体畸形（如缺失 `cmd`） | 400 |
+| `BAD_TYPE` | 信封或命令体畸形（如缺失 `cmd` / 缺失 `name` / 节点类型不对） | 400 |
 | `UNKNOWN_CMD` | 命令不在白名单 | 404 |
-| `BOARD_NOT_FOUND` | `boardId` 指向不存在的画板 | 404 |
+| `BOARD_NOT_FOUND` | 引用的 `boardId` / `folderId` 不存在 | 404 |
 | `PARENT_NOT_FOLDER` | `createBoard.parentId` 不是文件夹 | 400 |
 | `MERMAID_PARSE_FAILED` | Mermaid 解析失败 / 空内容 | 422 |
 | `PROTOCOL_UNSUPPORTED` | `kbProtocol` 协商失败 | 426 |
@@ -277,6 +295,9 @@
 | deleteElement | `kbfs_delete_element` | `core/executor.ts` |
 | replaceBoard | `kbfs_replace_board` | `core/executor.ts` |
 | createBoard | `kbfs_create_board` | `core/executor.ts` |
+| createFolder | `kbfs_create_folder` | `core/executor.ts` |
+| renameBoard | `kbfs_rename_board` | `core/executor.ts` |
+| renameFolder | `kbfs_rename_folder` | `core/executor.ts` |
 | deleteBoard | `kbfs_delete_board` | `core/executor.ts` |
 | fromMermaid | `kbfs_from_mermaid` | `core/executor.ts` |
 | setMetadata | `kbfs_set_metadata` | `core/executor.ts`（`--dir` 实现；`--relay` 返回 `EXEC_FAILED`） |
