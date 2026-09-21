@@ -1,6 +1,6 @@
 {
   "name": "kaiboard-mcp",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "description": "KaiBoard Model Context Protocol monorepo — @kaibuddy/kaiboard-core (storage-agnostic Agent co-drawing command core) + @kaibuddy/kaiboard-mcp (stdio JSON-RPC MCP server). Lets AI agents draw on local-first KaiBoard whiteboards.",
   "workspaces": [

@@ -8,6 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
+## [0.4.2] - 2026-09-21
+
+### Added / 新增
+
+- 每个 MCP 工具补上 `annotations`：`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`（**显式布尔值**）。
+  宿主与目录可据此在调用前提示用户；**缺任一项或写成非布尔会被 OpenAI 等目录直接拒收**。
+
+  Every MCP tool now declares all four annotation hints as explicit booleans.
+  Hosts and directories use them to warn users before invoking a tool; directories such as OpenAI's
+  reject tools where any hint is missing or non-boolean.
+
+- `openWorldHint` **一律 `false`**：本服务只与**本机** KaiBoard 交互（本地中继 / 本地文件夹），不与任何外部实体通信。
+
+### Notes / 说明
+
+- 纯元数据新增，**无任何行为变更**；`kbProtocol` 保持 `1.0`。
+- 标注表用 `Record<AgentCmd, ...>` 约束 —— **将来新增命令若忘记补标注，会直接编译报错**。
+
+---
+
 ## [0.4.1] - 2026-09-21
 
 补齐 Agent 在**文件树上的完整管理闭环**：建 / 改 / 移 / 排 / 删 / **还原**。

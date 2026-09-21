@@ -5,7 +5,7 @@ import type { AgentCmd } from "@kaibuddy/kaiboard-core";
 // 包版本可以一路涨（0.2.0 → 0.9.0），kbProtocol 保持 "1.0" 不变，老客户端不受影响。
 export const KB_PROTOCOL = "1.0";
 export const SERVER_NAME = "kaiboard-mcp";
-export const SERVER_VERSION = "0.4.1"; // 应与本包 package.json 同步
+export const SERVER_VERSION = "0.4.2"; // 应与本包 package.json 同步
 
 export const COMMANDS: AgentCmd[] = [
   "getBoard",

@@ -41,10 +41,63 @@ function toolName(cmd: string): string {
   return CMD_TO_TOOL[cmd] ?? "kbfs_" + camelToSnake(cmd);
 }
 
+/**
+ * MCP 工具标注（tools/list 的 annotations）。
+ *
+ * 为什么必须有：宿主/目录靠它们判断能否在调用前提示用户。
+ * **缺任一项或写成非布尔，OpenAI 等目录会直接拒收**（M8ven 巡检指出）。
+ *
+ * - readOnlyHint      只读、不改任何状态
+ * - destructiveHint   可能造成难以撤销的更改
+ * - idempotentHint    重复调用与调用一次效果相同
+ * - openWorldHint     与外部的开放世界（外部实体/服务）交互
+ *
+ * 🔴 openWorldHint **一律 false**：本服务只与**本机** KaiBoard 交互（本地中继 / 本地文件夹），
+ *    不与任何外部实体通信 —— 这与产品的零云承诺一致。
+ *
+ * Record<AgentCmd, ...> 是有意的：**新增命令若忘记补标注，这里会编译报错**。
+ */
+const CMD_HINTS: Record<
+  AgentCmd,
+  { readOnlyHint: boolean; destructiveHint: boolean; idempotentHint: boolean }
+> = {
+  getBoard:     { readOnlyHint: true,  destructiveHint: false, idempotentHint: true  },
+  getScreenshot:{ readOnlyHint: true,  destructiveHint: false, idempotentHint: true  },
+  listBoards:   { readOnlyHint: true,  destructiveHint: false, idempotentHint: true  },
+  listTrash:    { readOnlyHint: true,  destructiveHint: false, idempotentHint: true  },
+  addElement:   { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  patchElement: { readOnlyHint: false, destructiveHint: false, idempotentHint: true  },
+  deleteElement:{ readOnlyHint: false, destructiveHint: true,  idempotentHint: false },
+  replaceBoard: { readOnlyHint: false, destructiveHint: true,  idempotentHint: true  },
+  createBoard:  { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  createFolder: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  renameBoard:  { readOnlyHint: false, destructiveHint: false, idempotentHint: true  },
+  renameFolder: { readOnlyHint: false, destructiveHint: false, idempotentHint: true  },
+  moveNode:     { readOnlyHint: false, destructiveHint: false, idempotentHint: true  },
+  reorderNode:  { readOnlyHint: false, destructiveHint: false, idempotentHint: true  },
+  deleteBoard:  { readOnlyHint: false, destructiveHint: true,  idempotentHint: false },
+  deleteFolder: { readOnlyHint: false, destructiveHint: true,  idempotentHint: false },
+  restoreNode:  { readOnlyHint: false, destructiveHint: false, idempotentHint: true  },
+  fromMermaid:  { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+  setMetadata:  { readOnlyHint: false, destructiveHint: false, idempotentHint: true  },
+};
+
+/** 取某命令的 annotations（openWorldHint 恒为 false：只与本机交互）。 */
+function annotationsFor(cmd: AgentCmd) {
+  const h = CMD_HINTS[cmd];
+  return {
+    readOnlyHint: h.readOnlyHint,
+    destructiveHint: h.destructiveHint,
+    idempotentHint: h.idempotentHint,
+    openWorldHint: false,
+  };
+}
+
 const TOOLS = [
   ...COMMANDS.map((cmd) => ({
     name: toolName(cmd),
     description: `KaiBoard co-draw command: ${cmd}. Parameters: see docs/PROTOCOL.md. / KaiBoard 共绘命令 ${cmd}，参数见 docs/PROTOCOL.md。`,
+    annotations: annotationsFor(cmd),
     inputSchema: {
       type: "object",
       properties: {
@@ -71,6 +124,7 @@ const TOOLS = [
   })),
   {
     name: "kbfs_list_capabilities",
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     description: "KaiBoard capability declaration: available commands / storage modes / snapshot limit / server info. / KaiBoard 能力声明：可用命令白名单 / 存储模式 / 快照上限 / 服务端信息",
     inputSchema: {
       type: "object",
