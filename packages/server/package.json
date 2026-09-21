@@ -46,7 +46,7 @@
     "start": "node dist/cli.js"
   },
   "dependencies": {
-    "@kaibuddy/kaiboard-core": "^0.2.0"
+    "@kaibuddy/kaiboard-core": "^0.4.0"
   },
   "peerDependencies": {
     "@excalidraw/excalidraw": "*",
