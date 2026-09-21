@@ -5,7 +5,7 @@ import type { AgentCmd } from "@kaibuddy/kaiboard-core";
 // 包版本可以一路涨（0.2.0 → 0.9.0），kbProtocol 保持 "1.0" 不变，老客户端不受影响。
 export const KB_PROTOCOL = "1.0";
 export const SERVER_NAME = "kaiboard-mcp";
-export const SERVER_VERSION = "0.3.0"; // 应与本包 package.json 同步
+export const SERVER_VERSION = "0.4.0"; // 应与本包 package.json 同步
 
 export const COMMANDS: AgentCmd[] = [
   "getBoard",
@@ -20,6 +20,11 @@ export const COMMANDS: AgentCmd[] = [
   "renameBoard",
   "renameFolder",
   "deleteBoard",
+  "deleteFolder",
+  "listTrash",
+  "restoreNode",
+  "moveNode",
+  "reorderNode",
   "fromMermaid",
   "setMetadata",
 ];
@@ -60,7 +65,9 @@ export function errorCodeFromCore(message: string | undefined): string {
   if (m.includes("parent folder not found")) return "PARENT_NOT_FOLDER";
   if (m.includes("board not found") || m.includes("folder not found")) return "BOARD_NOT_FOUND";
   if (m.includes("not a folder") || m.includes("not a board")) return "BAD_TYPE";
-  if (m.includes("requires name") || m.includes("requires folderId") || m.includes("requires boardId")) return "BAD_TYPE";
+  if (m.includes("requires name") || m.includes("requires folderId") || m.includes("requires boardId")
+      || m.includes("requires nodeId") || m.includes("requires a numeric order")) return "BAD_TYPE";
+  if (m.includes("cannot move a node into")) return "BAD_TYPE";
   if (m.includes("unknown cmd")) return "UNKNOWN_CMD";
   if (m.includes("empty mermaid") || m.includes("mermaid parse failed")) return "MERMAID_PARSE_FAILED";
   if (m.includes("bad command")) return "BAD_TYPE";

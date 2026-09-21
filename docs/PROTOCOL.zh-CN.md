@@ -126,7 +126,8 @@
     "getBoard", "getScreenshot", "listBoards", "addElement",
     "patchElement", "deleteElement", "replaceBoard", "createBoard",
     "createFolder", "renameBoard", "renameFolder",
-    "deleteBoard", "fromMermaid", "setMetadata"
+    "deleteBoard", "deleteFolder", "listTrash", "restoreNode",
+    "moveNode", "reorderNode", "fromMermaid", "setMetadata"
   ],
   "storageModes": ["idb", "fs", "dir", "relay"],
   "activeStorageMode": "relay",       // 当前实际生效的绑定
@@ -256,6 +257,36 @@
 
 ---
 
+### 6.15 deleteFolder（写）
+- 参数：`{ folderId: string }` —— **必填**
+- 响应：`{ ok: true, deleted: 1, folderId, name, trashed: true }`
+- 说明：**软删除** —— 把该文件夹**连同其全部子孙**移入回收站（可还原）。约束：只删文件夹类型（画板请用 `deleteBoard`）；
+  **若「当前打开的画板」位于该文件夹内则拒绝** → 请先切换画板。`--dir` 模式不实现 → `EXEC_FAILED`。
+
+### 6.16 listTrash（读）
+- 参数：`{ }`
+- 响应：`{ ok: true, count, items: [{ id, type, name, deletedAt }] }`
+- 说明：只列回收站的**顶层条目**（用户直接删除的那些）；子孙**不重复列出**，还原时随父级一起回来 —— 与界面回收站一致。
+  `--dir` 模式不实现 → `EXEC_FAILED`。
+
+### 6.17 restoreNode（写）
+- 参数：`{ nodeId: string }` —— **必填**（也接受 `boardId` / `folderId` 作别名）
+- 响应：`{ ok: true, restored: 1, nodeId }`
+- 说明：从回收站还原该节点**及其整棵子树**。若原父级已被删或不存在，实现侧会把它**落到根层**而不是报错。
+  `--dir` 模式不实现 → `EXEC_FAILED`。
+
+### 6.18 moveNode（写）
+- 参数：`{ nodeId: string, parentId?: string | null }` —— 省略或 `null` = 移到根层
+- 响应：`{ ok: true, nodeId, name, parentId, previousParentId, order }`
+- 说明：**画板与文件夹都适用**。两道防环：不许移进自己；不许移进自己的子孙。`order` 会重算为该层末尾。
+
+### 6.19 reorderNode（写）
+- 参数：`{ nodeId: string, order: number }` —— **两项都必填**
+- 响应：`{ ok: true, nodeId, name, order, previousOrder }`
+- 说明：调整节点在**当前父级内**的排序权重（**越小越靠前**）。`order` 是权重，不是下标。
+
+---
+
 ## 7. 错误码
 
 | code | 含义 | HTTP 类比 |
@@ -299,6 +330,11 @@
 | renameBoard | `kbfs_rename_board` | `core/executor.ts` |
 | renameFolder | `kbfs_rename_folder` | `core/executor.ts` |
 | deleteBoard | `kbfs_delete_board` | `core/executor.ts` |
+| deleteFolder | `kbfs_delete_folder` | `core/executor.ts` |
+| listTrash | `kbfs_list_trash` | `core/executor.ts` |
+| restoreNode | `kbfs_restore_node` | `core/executor.ts` |
+| moveNode | `kbfs_move_node` | `core/executor.ts` |
+| reorderNode | `kbfs_reorder_node` | `core/executor.ts` |
 | fromMermaid | `kbfs_from_mermaid` | `core/executor.ts` |
 | setMetadata | `kbfs_set_metadata` | `core/executor.ts`（`--dir` 实现；`--relay` 返回 `EXEC_FAILED`） |
 | listCapabilities | `kbfs_list_capabilities` | `server/protocol.ts` |

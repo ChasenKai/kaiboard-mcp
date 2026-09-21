@@ -58,6 +58,8 @@ const TOOLS = [
         name: { type: "string" },
         parentId: { type: "string" },
         folderId: { type: "string" },
+        nodeId: { type: "string" },
+        order: { type: "number" },
         mermaid: { type: "string" },
         source: { type: "object" },
         opts: { type: "object" },
@@ -149,21 +151,11 @@ function sleep(ms: number) {
 
 /** 构造发给中继 /cmd 的指令体（字段与 app 端 agentRelayClient 期望的 RelayCmd 对齐）。 */
 function buildRelayBody(cmd: string, id: string, agentCmd: AgentCommand): any {
-  return {
-    id,
-    cmd,
-    boardId: agentCmd.boardId,
-    elements: agentCmd.elements,
-    patches: agentCmd.patches,
-    ids: agentCmd.ids,
-    name: agentCmd.name,
-    parentId: agentCmd.parentId,
-    folderId: agentCmd.folderId,
-    mermaid: agentCmd.mermaid,
-    source: agentCmd.source,
-    opts: agentCmd.opts,
-    // 注：app 端 relay 客户端当前不转发 metadata（setMetadata 为 --dir 专属），relay 模式返回 unsupported。
-  };
+  // 透传 AgentCommand 全字段。
+  // 历史上这里是「逐字段白名单」，新增 folderId 时漏加 → 该字段被静默丢弃（renameFolder 直接失效）。
+  // 改成透传后，这类「加了命令忘了加字段」的 bug 从结构上被消除。
+  // 安全性由「仅本机中继 + token 校验 + 执行端只读已知字段」保证。
+  return { ...agentCmd, id, cmd };
 }
 
 /**

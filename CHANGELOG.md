@@ -8,29 +8,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
-## [0.3.0] - 2026-09-21
+## [0.4.0] - 2026-09-21
 
-新增：画板与文件夹的**建 / 改名**命令 —— 补齐 Agent 在文件树上的管理能力。
+补齐 Agent 在**文件树上的完整管理闭环**：建 / 改 / 移 / 排 / 删 / **还原**。
+Complete tree-management loop: create / rename / move / reorder / delete / **restore**.
 
 ### Added / 新增
 
 - **`createFolder`** — 新建文件夹（返回 `folderId`；`parentId` 必须是已存在的文件夹）。
-- **`renameBoard`** — 改画板名（返回 `previousName`）。
-- **`renameFolder`** — 改文件夹名（返回 `previousName`）。
-
-三个命令均为**向后兼容的新增**：不改动任何已有命令的行为与参数语义 → 按 SemVer 记为 **MINOR 版本**（`0.2.x` → `0.3.0`），`kbProtocol` 保持 `1.0` 不变。
-
-All three are **purely additive** — no existing command's behaviour or parameter semantics change.
+- **`renameBoard`** / **`renameFolder`** — 改名（返回 `previousName`）。
+- **`moveNode`** — 移动节点到另一父级（画板与文件夹皆可；含两道防环）。
+- **`reorderNode`** — 调整同层排序权重。
+- **`deleteFolder`** — 软删除文件夹**及其全部子孙**（进回收站，可还原）。
+- **`listTrash`** — 回收站顶层条目（子孙不重复列）。
+- **`restoreNode`** — 从回收站还原（连整棵子树；原父级若已不在则自动落到根层）。
 
 ### Notes / 说明
 
-- `createFolder` / `renameFolder` / `renameBoard` 与既有命令一样，**由执行端落地**：
-  `--dir` 模式下由本包直接写文件树；`--relay` 模式下转发给 KaiBoard 页面执行。
-- 类型校验是显式的：`renameBoard` 遇到文件夹 id 会返回 `BAD_TYPE` 并提示 `use renameFolder`（反之亦然），
-  避免"改错对象"这类静默错误。
+- 全部为**向后兼容的新增** → 按 SemVer 记为 **MINOR**；`kbProtocol` 保持 `1.0`，老客户端不受影响。
+- **类型校验是显式的**：`renameBoard` / `deleteBoard` 遇到文件夹会提示 `use renameFolder` / `use deleteFolder`（反之亦然），避免"改错 / 删错对象"这类静默错误。
+- **`deleteFolder` 会拒绝**删除"当前打开的画板所在"的文件夹 → 请先切换画板。
+- **回收站语义**：删除只给**顶层**打 `trashRoot` 标记，子孙只打 `deletedAt` → `listTrash` 只列顶层，`restoreNode` 还原顶层即带出整棵子树。
+- **`--dir` 不支持** `deleteFolder` / `listTrash` / `restoreNode`（与 `deleteBoard` 一致）；`moveNode` / `reorderNode` 两种模式都可用。
+- 🔧 **内部：relay 转发由「逐字段白名单」改为透传**。此前新增 `folderId` 时漏加白名单，导致该字段被静默丢弃（`renameFolder` 在 relay 路径下直接失效）。改为透传后此类缺陷从结构上消除。
 - 完整命令清单始终以 `kbfs_list_capabilities` 返回的 `commands` 为准。
 
 ---
+
 ## [0.2.0] - 2026-09-18 · 首个公开发布版 / First public release
 
 首个公开发布版本。`0.x` 表示 API 在次版本之间仍可能变化；`1.0.0` 才代表稳定性承诺。

@@ -269,6 +269,117 @@ export async function executeCommand(
         return { ok: false, error: "unsupported: current storage backend cannot delete boards" };
       }
 
+      /**
+       * deleteFolder：软删除文件夹及其全部子孙（进回收站，可还原）。
+       * 安全约束：① 必须显式给 folderId；② 只删 folder 类型；
+       * ③ 拒绝删除「当前打开的画板所在」的文件夹（否则画布会指向已删内容）。
+       */
+      case "deleteFolder": {
+        const id = d.folderId;
+        if (!id) return { ok: false, error: "deleteFolder requires folderId" };
+        const node = await adapter.getNode(id);
+        if (!node) return { ok: false, error: "folder not found: " + id };
+        if (node.type !== "folder") return { ok: false, error: "not a folder (use deleteBoard): " + id };
+        if (adapter.currentBoardId) {
+          const all = await adapter.listBoards();
+          const parentOf = new Map(all.map((n) => [n.id, n.parentId] as const));
+          let cur: string | null | undefined = adapter.currentBoardId;
+          const guard = new Set<string>();
+          while (cur && !guard.has(cur)) {
+            guard.add(cur);
+            if (cur === id) {
+              return { ok: false, error: "cannot delete a folder that contains the currently open board; switch to another board first" };
+            }
+            cur = parentOf.get(cur) ?? null;
+          }
+        }
+        if (typeof adapter.trashNode === "function") {
+          await adapter.trashNode(id);
+          onActivity(`Agent 共绘：已删除文件夹「${node.name}」及其内容（可在回收站还原）`);
+          return { ok: true, deleted: 1, folderId: id, name: node.name, trashed: true };
+        }
+        return { ok: false, error: "unsupported: current storage backend cannot delete folders" };
+      }
+
+      /** listTrash：回收站顶层条目（子孙不重复列，与 UI 回收站一致）。 */
+      case "listTrash": {
+        if (typeof adapter.listTrash === "function") {
+          const nodes = await adapter.listTrash();
+          return {
+            ok: true,
+            count: nodes.length,
+            items: nodes.map((n) => ({ id: n.id, type: n.type, name: n.name, deletedAt: n.deletedAt ?? null })),
+          };
+        }
+        return { ok: false, error: "unsupported: current storage backend cannot list trash" };
+      }
+
+      /**
+       * restoreNode：从回收站还原（连同其子孙一起还原）。
+       * 注：若原父级已删或不存在，实现侧会把 parentId 置空（落到根层），不会还原失败。
+       */
+      case "restoreNode": {
+        const id = d.nodeId || d.boardId || d.folderId;
+        if (!id) return { ok: false, error: "restoreNode requires nodeId" };
+        if (typeof adapter.restoreNode === "function") {
+          await adapter.restoreNode(id);
+          onActivity("Agent 共绘：已从回收站还原一项");
+          return { ok: true, restored: 1, nodeId: id };
+        }
+        return { ok: false, error: "unsupported: current storage backend cannot restore from trash" };
+      }
+
+      /**
+       * moveNode：把节点移到另一个父级（null / 省略 = 根层）。画板与文件夹都适用。
+       * 两道防环：不许移进自己；不许移进自己的子孙。
+       */
+      case "moveNode": {
+        const id = d.nodeId;
+        if (!id) return { ok: false, error: "moveNode requires nodeId" };
+        const node = await adapter.getNode(id);
+        if (!node) return { ok: false, error: "node not found: " + id };
+        const newParent = d.parentId ?? null;
+        if (newParent) {
+          if (newParent === id) return { ok: false, error: "cannot move a node into itself" };
+          const p = await adapter.getNode(newParent);
+          if (!p || p.type !== "folder") return { ok: false, error: "parent folder not found: " + newParent };
+          const all = await adapter.listBoards();
+          const parentOf = new Map(all.map((n) => [n.id, n.parentId] as const));
+          let cur: string | null | undefined = newParent;
+          const guard = new Set<string>();
+          while (cur && !guard.has(cur)) {
+            guard.add(cur);
+            if (cur === id) return { ok: false, error: "cannot move a node into its own descendant" };
+            cur = parentOf.get(cur) ?? null;
+          }
+        }
+        const previousParentId = node.parentId;
+        const order = (await adapter.getMaxOrder(newParent)) + 1;
+        node.parentId = newParent;
+        node.order = order;
+        node.updatedAt = Date.now();
+        await adapter.putNode(node);
+        onActivity(`Agent 共绘：「${node.name}」已移动`);
+        return { ok: true, nodeId: id, name: node.name, parentId: newParent, previousParentId, order };
+      }
+
+      /** reorderNode：调整同层排序（order 越小越靠前）。 */
+      case "reorderNode": {
+        const id = d.nodeId;
+        if (!id) return { ok: false, error: "reorderNode requires nodeId" };
+        if (typeof d.order !== "number" || !Number.isFinite(d.order)) {
+          return { ok: false, error: "reorderNode requires a numeric order" };
+        }
+        const node = await adapter.getNode(id);
+        if (!node) return { ok: false, error: "node not found: " + id };
+        const previousOrder = node.order ?? null;
+        node.order = d.order;
+        node.updatedAt = Date.now();
+        await adapter.putNode(node);
+        onActivity(`Agent 共绘：「${node.name}」顺序已调整`);
+        return { ok: true, nodeId: id, name: node.name, order: node.order, previousOrder };
+      }
+
       /** Mermaid → 原生可编辑 Excalidraw 图元。 */
       case "fromMermaid": {
         const src = (d.mermaid || "").trim();

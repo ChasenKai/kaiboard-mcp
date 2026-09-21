@@ -50,6 +50,11 @@ export type AgentCmd =
   | "renameBoard"
   | "renameFolder"
   | "deleteBoard"
+  | "deleteFolder"
+  | "listTrash"
+  | "restoreNode"
+  | "moveNode"
+  | "reorderNode"
   | "fromMermaid"
   | "setMetadata";
 
@@ -74,8 +79,12 @@ export interface AgentCommand {
   /** createBoard：新画板名 / 目标父文件夹；createFolder：新文件夹名 / 目标父文件夹；rename*：新名 */
   name?: string;
   parentId?: string | null;
-  /** renameFolder：目标文件夹 id（renameBoard 用 boardId） */
+  /** renameFolder / deleteFolder：目标文件夹 id（renameBoard / deleteBoard 用 boardId） */
   folderId?: string;
+  /** moveNode / reorderNode / restoreNode：目标节点 id（画板或文件夹皆可） */
+  nodeId?: string;
+  /** reorderNode：同层排序权重（越小越靠前） */
+  order?: number;
   /** fromMermaid：mermaid 源码 */
   mermaid?: string;
   /** setMetadata：画板级元数据包 */
@@ -132,6 +141,10 @@ export interface StorageAdapter {
    * --dir fs 模式不实现 → deleteBoard 命令返回 unsupported。
    */
   trashNode?(id: string): Promise<void>;
+  /** 回收站顶层条目（仅用户直接删除的那一层）。未实现 → listTrash 返回 unsupported。 */
+  listTrash?(): Promise<FileNode[]>;
+  /** 从回收站递归还原。未实现 → restoreNode 返回 unsupported。 */
+  restoreNode?(id: string): Promise<void>;
   getMaxOrder(parentId: string | null): Promise<number>;
   getSetting<T>(key: string, fallback: T): Promise<T>;
   setSetting(key: string, value: any): Promise<void>;

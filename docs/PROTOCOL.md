@@ -126,7 +126,8 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
     "getBoard", "getScreenshot", "listBoards", "addElement",
     "patchElement", "deleteElement", "replaceBoard", "createBoard",
     "createFolder", "renameBoard", "renameFolder",
-    "deleteBoard", "fromMermaid", "setMetadata"
+    "deleteBoard", "deleteFolder", "listTrash", "restoreNode",
+    "moveNode", "reorderNode", "fromMermaid", "setMetadata"
   ],
   "storageModes": ["idb", "fs", "dir", "relay"],
   "activeStorageMode": "relay",       // the binding actually in effect
@@ -256,6 +257,38 @@ It is **transport-agnostic**: the same logical commands can be bound to differen
 
 ---
 
+### 6.15 deleteFolder (write)
+- Parameters: `{ folderId: string }` (**required**)
+- Response: `{ ok: true, deleted: 1, folderId, name, trashed: true }`
+- Notes: **soft delete** — moves the folder *and all its descendants* to trash (restorable). Constraints: folders only
+  (boards → `deleteBoard`); **refuses when the currently open board lives inside that folder** — switch boards first.
+  Not implemented under `--dir` → `EXEC_FAILED`.
+
+### 6.16 listTrash (read)
+- Parameters: `{ }`
+- Response: `{ ok: true, count, items: [{ id, type, name, deletedAt }] }`
+- Notes: lists only the **top level** of the trash — the items the user deleted directly. Descendants are not listed
+  again (they return with their parent on restore), mirroring the app's Trash panel. Not implemented under `--dir` → `EXEC_FAILED`.
+
+### 6.17 restoreNode (write)
+- Parameters: `{ nodeId: string }` (**required**; `boardId` / `folderId` accepted as aliases)
+- Response: `{ ok: true, restored: 1, nodeId }`
+- Notes: restores the node **and its whole subtree**. If the original parent is gone or still deleted, the
+  implementation re-parents it to the **root level** instead of failing. Not implemented under `--dir` → `EXEC_FAILED`.
+
+### 6.18 moveNode (write)
+- Parameters: `{ nodeId: string, parentId?: string | null }` — omitted / `null` = move to root
+- Response: `{ ok: true, nodeId, name, parentId, previousParentId, order }`
+- Notes: works for boards **and** folders. Two cycle guards: cannot move a node into itself, nor into its own
+  descendant. `order` is recomputed to the end of the destination level.
+
+### 6.19 reorderNode (write)
+- Parameters: `{ nodeId: string, order: number }` (**both required**)
+- Response: `{ ok: true, nodeId, name, order, previousOrder }`
+- Notes: adjusts the sort weight within the node's current parent (**lower = earlier**). `order` is a weight, not an index.
+
+---
+
 ## 7. Error codes
 
 | code | Meaning | HTTP analogue |
@@ -299,6 +332,11 @@ Error responses are always: `{ kbProtocol, requestId, ok: false, error: { code, 
 | renameBoard | `kbfs_rename_board` | `core/executor.ts` |
 | renameFolder | `kbfs_rename_folder` | `core/executor.ts` |
 | deleteBoard | `kbfs_delete_board` | `core/executor.ts` |
+| deleteFolder | `kbfs_delete_folder` | `core/executor.ts` |
+| listTrash | `kbfs_list_trash` | `core/executor.ts` |
+| restoreNode | `kbfs_restore_node` | `core/executor.ts` |
+| moveNode | `kbfs_move_node` | `core/executor.ts` |
+| reorderNode | `kbfs_reorder_node` | `core/executor.ts` |
 | fromMermaid | `kbfs_from_mermaid` | `core/executor.ts` |
 | setMetadata | `kbfs_set_metadata` | `core/executor.ts` (implemented under `--dir`; `EXEC_FAILED` under `--relay`) |
 | listCapabilities | `kbfs_list_capabilities` | `server/protocol.ts` |
