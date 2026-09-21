@@ -158,6 +158,7 @@ function buildRelayBody(cmd: string, id: string, agentCmd: AgentCommand): any {
     ids: agentCmd.ids,
     name: agentCmd.name,
     parentId: agentCmd.parentId,
+    folderId: agentCmd.folderId,
     mermaid: agentCmd.mermaid,
     source: agentCmd.source,
     opts: agentCmd.opts,
