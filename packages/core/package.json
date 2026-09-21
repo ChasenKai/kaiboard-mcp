@@ -1,6 +1,6 @@
 {
   "name": "@kaibuddy/kaiboard-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Storage-agnostic command core for KaiBoard agent co-drawing: 11 commands driven through a pluggable storage adapter.",
   "keywords": [
     "kaiboard",
