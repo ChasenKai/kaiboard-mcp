@@ -1,6 +1,6 @@
 {
   "name": "@kaibuddy/kaiboard-mcp",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "mcpName": "io.github.ChasenKai/kaiboard-mcp",
   "description": "KaiBoard MCP server: let AI agents draw on your local KaiBoard whiteboards over stdio JSON-RPC. --relay drives the live board; --dir works in a local folder.",
   "keywords": [

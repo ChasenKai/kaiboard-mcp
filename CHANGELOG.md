@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); version
 
 ---
 
-## [0.4.0] - 2026-09-21
+## [0.4.1] - 2026-09-21
 
 补齐 Agent 在**文件树上的完整管理闭环**：建 / 改 / 移 / 排 / 删 / **还原**。
 Complete tree-management loop: create / rename / move / reorder / delete / **restore**.
@@ -22,6 +22,14 @@ Complete tree-management loop: create / rename / move / reorder / delete / **res
 - **`deleteFolder`** — 软删除文件夹**及其全部子孙**（进回收站，可还原）。
 - **`listTrash`** — 回收站顶层条目（子孙不重复列）。
 - **`restoreNode`** — 从回收站还原（连整棵子树；原父级若已不在则自动落到根层）。
+
+### Fixed / 修复
+
+- 修正 `@kaibuddy/kaiboard-mcp` 对 `@kaibuddy/kaiboard-core` 的依赖范围（`^0.2.0` → `^0.4.0`）。
+  此前范围只匹配 `<0.3.0`，**安装时会拉到旧版 core，导致本次新增的命令在运行时不存在**。
+
+  Fixed the cross-package dependency range so the companion core package resolves to the matching
+  version. Previously the range could only match an older core, leaving the new commands unavailable at runtime.
 
 ### Notes / 说明
 
