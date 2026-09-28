@@ -7,6 +7,8 @@
 KaiBoard is a free, open-source, **local-first** whiteboard: your boards live on your own device, never in the cloud.
 This repo is the bridge that lets an agent read and edit those boards — the agent runs wherever your MCP client runs, and **the canvas stays on your machine**.
 
+<img src="./assets/architecture.svg" alt="Request flow: an MCP client sends kbfs_* tool calls over stdio JSON-RPC to kaiboard-mcp; from there it reaches KaiBoard either through the built-in local relay on 127.0.0.1 (driving the page you have open) or by reading and writing a local folder you choose. No account, no sign-in, and board data is never uploaded to a server." width="100%">
+
 It contains two independently usable packages:
 
 | Package | Role |
