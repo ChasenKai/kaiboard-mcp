@@ -17,6 +17,7 @@ on:
 permissions:
   id-token: write # required for OIDC / OIDC 必需
   contents: read
+  issues: write # 🔔 失败时自动开 issue（发布不可静默）/ to open an issue on failure
 
 jobs:
   publish:
@@ -39,3 +40,37 @@ jobs:
 
       - name: Publish to MCP Registry
         run: ./mcp-publisher publish
+
+      # 🔔 Fail loudly (added 2026-09-27)
+      # A tag push can succeed while this publish step fails, leaving the registry
+      # behind the published npm release with no obvious signal in the repository.
+      # So: on failure, open an issue (or comment on the existing open one) to keep it visible.
+      # Rule of thumb: a pushed tag does not mean a successful publish.
+      #
+      # 🔔 失败要显形（2026-09-27 加）
+      # tag 推成功 ≠ 这一步发布成功；失败时若不留痕，注册表会悄悄落后于已发布的 npm 版本。
+      # 做法：失败时自动开 issue（已有同类 open issue 则追加评论，避免刷屏）。
+      - name: 🔔 Open issue on failure (publish must not fail silently)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="[发布告警] Publish to MCP Registry 失败（${GITHUB_REF_NAME}）"
+          printf '%s\n' \
+            "MCP Registry 发布流水线**失败** → 注册表可能未更新。" \
+            "" \
+            "- 触发: ${GITHUB_REF_NAME}（${GITHUB_EVENT_NAME}）" \
+            "- 提交: ${GITHUB_SHA}" \
+            "- 运行: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            "" \
+            "排查要点：" \
+            "1. server.json 的 version 与 packages[].version 是否已随本次发版升（重复发布旧号会返回 400 duplicate）" \
+            "2. 注册表是否已存在该版本" \
+            "3. 发布成功后必须核实：注册表里 isLatest 的 version == 本次版本" \
+            > /tmp/alert.md
+          EXIST=$(gh issue list --state open --search "发布告警 in:title" --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "${EXIST}" ]; then
+            gh issue comment "${EXIST}" --body-file /tmp/alert.md
+          else
+            gh issue create --title "${TITLE}" --body-file /tmp/alert.md
+          fi
