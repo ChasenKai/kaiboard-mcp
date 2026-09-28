@@ -78,20 +78,35 @@ npx -y @kaibuddy/kaiboard-mcp
 
 ## 工具清单
 
-`tools/list` 返回 **12 个工具**（11 个命令 + 1 个能力声明）：
+`tools/list` 返回 **20 个工具**：**19 个命令** + 1 个能力声明。
+⚠️ 表示带 `destructiveHint`（可能造成难以撤销的更改）；只读分组里的工具均为 `readOnlyHint: true`。
 
 | 工具 | 用途 |
 |---|---|
-| `kbfs_list_capabilities` | 查询当前运行时的能力（可用命令、存储模式、页面是否已连接） |
+| **查询 — 只读** | |
+| `kbfs_list_capabilities` | 查询当前运行时的能力（可用命令、存储模式、页面是否已连接、快照上限、服务端信息） |
 | `kbfs_list_boards` | 列出画板与文件夹 |
+| `kbfs_list_trash` | 列出软删除的画板 / 文件夹（回收站） |
 | `kbfs_get_board` | 读取画板元素 |
 | `kbfs_get_screenshot` | 把画板渲染成 PNG 交回 Agent 自查（`--relay` 可用；`--dir` 优雅降级） |
+| **画板** | |
+| `kbfs_create_board` | 新建画板 |
+| `kbfs_replace_board` ⚠️ | 整板替换（自动快照） |
+| `kbfs_rename_board` | 重命名画板 |
+| `kbfs_delete_board` ⚠️ | 删除画板（软删除，可在应用内还原） |
+| **文件夹** | |
+| `kbfs_create_folder` | 新建文件夹 |
+| `kbfs_rename_folder` | 重命名文件夹 |
+| `kbfs_delete_folder` ⚠️ | 删除文件夹 |
+| **目录树** | |
+| `kbfs_move_node` | 把画板或文件夹移入另一个文件夹 |
+| `kbfs_reorder_node` | 调整同一文件夹内的排序 |
+| `kbfs_restore_node` | 从回收站还原画板或文件夹 |
+| **图元** | |
 | `kbfs_add_element` | 追加图元 |
 | `kbfs_patch_element` | 按 id 局部修改属性 |
-| `kbfs_delete_element` | 按 id 删除图元 |
-| `kbfs_replace_board` | 整板替换（自动快照） |
-| `kbfs_create_board` | 新建画板 |
-| `kbfs_delete_board` | 删除画板（软删除，可在应用内还原） |
+| `kbfs_delete_element` ⚠️ | 按 id 删除图元 |
+| **内容与元数据** | |
 | `kbfs_from_mermaid` | Mermaid 源码转成原生可编辑图元 |
 | `kbfs_set_metadata` | 写画板级元数据（状态 / 版本 / 历史 / 批注） |
 
@@ -142,7 +157,7 @@ npm run smoke       # 真实 MCP 客户端冒烟（initialize → tools/call）
 
 ## 版本
 
-当前为 `0.1.x` —— API 在次版本之间仍可能变化；`1.0.0` 才代表稳定性承诺。
+当前为 `0.4.x` —— API 在次版本之间仍可能变化；`1.0.0` 才代表稳定性承诺。当前版本见 [`CHANGELOG.md`](./CHANGELOG.md)。
 
 ## License
 

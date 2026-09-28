@@ -78,20 +78,36 @@ Or combine them: `"args": ["-y", "@kaibuddy/kaiboard-mcp", "--relay", "--dir", "
 
 ## Tools
 
-`tools/list` returns **12 tools** (11 commands + 1 capability declaration):
+`tools/list` returns **20 tools**: **19 commands** plus one capability declaration.
+⚠️ marks a `destructiveHint` tool (may make hard-to-undo changes); the tools in the
+read-only group are `readOnlyHint: true`.
 
 | Tool | Purpose |
 |---|---|
-| `kbfs_list_capabilities` | Discover runtime capabilities (commands, storage modes, whether the page is connected) |
+| **Discovery — read-only** | |
+| `kbfs_list_capabilities` | Runtime capabilities: available commands, storage modes, snapshot limit, server info |
 | `kbfs_list_boards` | List boards and folders |
+| `kbfs_list_trash` | List soft-deleted boards / folders (trash) |
 | `kbfs_get_board` | Read a board's elements |
 | `kbfs_get_screenshot` | Render a board to PNG so the agent can look at it (`--relay`; degrades gracefully under `--dir`) |
+| **Boards** | |
+| `kbfs_create_board` | Create a board |
+| `kbfs_replace_board` ⚠️ | Replace a board's contents (auto-snapshot) |
+| `kbfs_rename_board` | Rename a board |
+| `kbfs_delete_board` ⚠️ | Delete a board (soft delete, restorable in the app) |
+| **Folders** | |
+| `kbfs_create_folder` | Create a folder |
+| `kbfs_rename_folder` | Rename a folder |
+| `kbfs_delete_folder` ⚠️ | Delete a folder |
+| **Tree** | |
+| `kbfs_move_node` | Move a board or folder into another folder |
+| `kbfs_reorder_node` | Change ordering within a folder |
+| `kbfs_restore_node` | Restore a board or folder from the trash |
+| **Elements** | |
 | `kbfs_add_element` | Add elements |
 | `kbfs_patch_element` | Patch element properties by id |
-| `kbfs_delete_element` | Delete elements by id |
-| `kbfs_replace_board` | Replace a board's contents (auto-snapshot) |
-| `kbfs_create_board` | Create a board |
-| `kbfs_delete_board` | Delete a board (soft delete, restorable in the app) |
+| `kbfs_delete_element` ⚠️ | Delete elements by id |
+| **Content & metadata** | |
 | `kbfs_from_mermaid` | Build native editable elements from a Mermaid diagram |
 | `kbfs_set_metadata` | Write board metadata (status / version / history / comments) |
 
@@ -142,7 +158,7 @@ No upstream source code is vendored — every component is used as an ordinary n
 
 ## Versioning
 
-Currently `0.1.x` — the API may still change between minor versions. `1.0.0` will mark the stability commitment.
+Currently `0.4.x` — the API may still change between minor versions. `1.0.0` will mark the stability commitment. See [`CHANGELOG.md`](./CHANGELOG.md) for the current release.
 
 ## License
 
